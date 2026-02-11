@@ -126,6 +126,135 @@ namespace Ymir.GeminiSync.Services.ManualTests
             return result;
         }
 
+        public static List<PlaceGeminiToAgreementInterval> BuildGeminiToAgreementIntervalsByDate(
+            List<AgreementPlaceHistoryLine> lines)
+        {
+            if (lines == null) return new();
+
+            var result = new List<PlaceGeminiToAgreementInterval>();
+
+            var placeGroups = lines
+                .GroupBy(x => x.PlaceNr)
+                .OrderBy(g => g.Key);
+
+            foreach (var placeGroup in placeGroups)
+            {
+                var placeNr = placeGroup.Key;
+                var placeLines = placeGroup.ToList();
+
+                // Change points are dates when an interval could start.
+                // - every FromDate
+                // - (ToDate + 1 day) because ToDate is inclusive
+                var changePoints = new SortedSet<DateTime>();
+                foreach (var l in placeLines)
+                {
+                    changePoints.Add(l.FromDate.Date);
+                    if (l.ToDate.HasValue)
+                        changePoints.Add(l.ToDate.Value.Date.AddDays(1));
+                }
+
+                var points = changePoints.ToList();
+                for (int i = 0; i < points.Count; i++)
+                {
+                    var intervalStart = points[i].Date;
+
+                    DateTime? intervalEnd = null;
+                    if (i < points.Count - 1)
+                    {
+                        var nextStart = points[i + 1].Date;
+                        intervalEnd = nextStart.AddDays(-1);
+
+                        // Defensive: skip empty/invalid intervals
+                        if (intervalEnd.Value < intervalStart)
+                            continue;
+                    }
+
+                    var endForCompare = intervalEnd ?? DateTime.MaxValue.Date;
+
+                    // Active lines overlap the interval (inclusive range logic)
+                    var activeLines = placeLines
+                        .Where(l =>
+                        {
+                            var to = (l.ToDate ?? DateTime.MaxValue.Date).Date;
+                            var from = l.FromDate.Date;
+                            return from <= endForCompare && to >= intervalStart;
+                        })
+                        .ToList();
+
+                    if (activeLines.Count == 0)
+                        continue;
+
+                    // Build mapping: ExternalAgreementId (Gemini) -> distinct AgreementIds
+                    var geminiToAgreement = activeLines
+                        .GroupBy(l => l.ExternalAgreementId)
+                        .OrderBy(g => g.Key)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Select(x => x.AgreementId).Distinct().OrderBy(id => id).ToList()
+                        );
+
+                    var intervalUpdatedAt = activeLines
+                        .Max(l => (l.UpdatedAt > l.FromDate ? l.UpdatedAt : l.FromDate));
+
+                    // Merge adjacent intervals if mapping is identical
+                    if (result.Count > 0)
+                    {
+                        var prev = result[^1];
+                        if (prev.PlaceNr == placeNr &&
+                            prev.ToDate.HasValue &&
+                            prev.ToDate.Value.Date.AddDays(1) == intervalStart &&
+                            SameGeminiMapping(prev.GeminiToAgreementIds, geminiToAgreement))
+                        {
+                            prev.ToDate = intervalEnd;
+                            if (intervalUpdatedAt > prev.UpdatedAt)
+                                prev.UpdatedAt = intervalUpdatedAt;
+                            continue;
+                        }
+                    }
+
+                    result.Add(new PlaceGeminiToAgreementInterval
+                    {
+                        PlaceNr = placeNr,
+                        FromDate = intervalStart,
+                        ToDate = intervalEnd,
+                        GeminiToAgreementIds = geminiToAgreement,
+                        UpdatedAt = intervalUpdatedAt
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        private static bool SameGeminiMapping(
+            Dictionary<int, List<int>> a,
+            Dictionary<int, List<int>> b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            if (a == null || b == null) return false;
+            if (a.Count != b.Count) return false;
+
+            foreach (var kv in a)
+            {
+                if (!b.TryGetValue(kv.Key, out var bList))
+                    return false;
+
+                var aList = kv.Value ?? new List<int>();
+                bList ??= new List<int>();
+
+                if (aList.Count != bList.Count)
+                    return false;
+
+                for (int i = 0; i < aList.Count; i++)
+                {
+                    if (aList[i] != bList[i])
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         public static List<FractionInTime> ToFractionsInTime(List<PlaceAgreementInterval> intervals)
         {
             var fractionInTimeList = intervals

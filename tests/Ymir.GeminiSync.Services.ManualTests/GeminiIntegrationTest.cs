@@ -1,5 +1,6 @@
 ﻿using NSubstitute;
 using Ymir.GeminiSync.Services.Models;
+using Ymir.GeminiSync.Services.Models.Containers;
 using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services.ManualTests
@@ -22,7 +23,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 .Returns(_ => new HttpClient());
         }
 
-        [Fact]
+        [Fact(Skip = "Manual test only")]
         public async Task UpdateGarbageBins()
         {
             //Arrange
@@ -80,7 +81,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             Assert.Fail("Manual test only");
         }
 
-        [Fact]
+        [Fact(Skip = "Manual test only")]
         public async Task UpdateFractionsInTime()
         {
             //Arrange
@@ -116,6 +117,47 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 if(!isSuccessful)
                 {
                     Console.WriteLine("Whoops " + intervalGroup.Key);
+                }
+            }
+
+            //Assert
+            Assert.Fail("Manual test only");
+        }
+
+        [Fact]
+        public async Task UpdatePrivateContainerFractionsInTime()
+        {
+            //Arrange
+            const string filePath = "E:\\Temp\\Ymir\\private_container_agreements_to_places.json";
+
+            DateTime minDate = new DateTime(1900, 1, 1);
+            var placeLines = await FileUtils.GetAgreementPlaceHistoryLines(filePath);
+            var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+
+            //Act
+            var intervals = GeminiUtils.BuildGeminiToAgreementIntervalsByDate(placeLines);
+            var groupedIntervals = intervals.GroupBy(i => i.PlaceNr);
+
+            foreach(var intervalsByPlace in groupedIntervals)
+            {
+                if(intervalsByPlace.Key != 1183360) continue;
+
+                var fractionsTimeline = PrivateContainerTimelineMapper.ToPrivateContainerFractionTimelines(intervalsByPlace.ToList());
+
+                //Adjust times
+                fractionsTimeline.ForEach(timeline =>
+                {
+                    timeline.FractionsInTime.ForEach(fraction =>
+                    {
+                        fraction.DateFrom = fraction.DateFrom.AddHours(12);
+                        fraction.DateTo = fraction.DateTo?.AddHours(12);
+                    });
+                });
+
+                var isSuccessful = await testGeminiClient.UpdatePrivateContainerGroupFractions(intervalsByPlace.Key, fractionsTimeline);
+                if (!isSuccessful)
+                {
+                    Console.WriteLine("Whoops " + intervalsByPlace.Key);
                 }
             }
 
