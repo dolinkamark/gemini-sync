@@ -6,7 +6,6 @@ namespace Ymir.GeminiSync.Services.ManualTests
 {
     public class GeminiIntegrationTest
     {
-        private readonly HttpClient _testHttpClient;
         private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
 
         private readonly GeminiSettings _settings = new GeminiSettings
@@ -18,7 +17,6 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
         public GeminiIntegrationTest()
         {
-            _testHttpClient = new HttpClient();
             _httpClientFactory
                 .CreateClient(Arg.Any<string>())
                 .Returns(_ => new HttpClient());

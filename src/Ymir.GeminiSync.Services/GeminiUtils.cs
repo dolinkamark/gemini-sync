@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Ymir.GeminiSync.Domain;
+﻿using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Models;
 
 namespace Ymir.GeminiSync.Services.ManualTests
@@ -156,7 +155,6 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             return fractionInTimeList;
         }
-
 
         public static List<AgreementFractionTimeline> ToFractionTimelines(
         List<FractionInTime> intervals)

@@ -1,6 +1,6 @@
-﻿namespace Ymir.GeminiSync.Services.Models;
+﻿namespace Ymir.GeminiSync.Services.Models.Containers;
 
-public class PrivateContainerGroupAgreementFraction
+public class PrivateContainerGroupFractionInTime
 {
     public DateTimeOffset DateFrom { get; set; }
 

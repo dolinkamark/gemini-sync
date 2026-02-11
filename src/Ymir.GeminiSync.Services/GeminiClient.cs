@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Ymir.GeminiSync.Services.Models;
+using Ymir.GeminiSync.Services.Models.Containers;
 using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services;
@@ -72,14 +73,22 @@ public class GeminiClient : IGeminiClient
 
     #endregion
 
-    public async Task<List<GarbageBinsCollectionDto>> GetPrivateContainerGroupFractions(int privateContainerGroupId)
+    public async Task<List<PrivateContainerFractionsResponse>> GetPrivateContainerGroupFractions(int privateContainerGroupId)
     {
-        return null;
+        string url = $"{_settings.BaseUrl}/garbagebins/api/GarbagePrivateContainerGroup/{privateContainerGroupId}/FractionsInTime";
+        return await DoApiCall<List<PrivateContainerFractionsResponse>>(url);
     }
 
-    public async Task<bool> UpdatePrivateContainerGroupFractions(GarbageBinsStateInTimeDto garbageBinsStates)
+    public async Task<bool> UpdatePrivateContainerGroupFractions(
+        int privateContainerGroupId,
+        List<PrivateContainerGroupAgreementFractions> agreementFractions)
     {
-        return false;
+        if (agreementFractions.Count == 0) return false;
+
+        string url = $"{_settings.BaseUrl}/garbagebins/api/GarbagePrivateContainerGroup/{privateContainerGroupId}/FractionsInTime";
+
+        var response = await DoApiCallInternal(url, HttpMethod.Put, agreementFractions);
+        return response.IsSuccessStatusCode;
     }
 
     #region Private Helpers

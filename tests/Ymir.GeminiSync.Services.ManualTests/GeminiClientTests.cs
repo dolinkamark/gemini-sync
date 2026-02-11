@@ -1,6 +1,7 @@
 ﻿using NSubstitute;
 using System.Text.Json;
 using Ymir.GeminiSync.Services.Models;
+using Ymir.GeminiSync.Services.Models.Containers;
 using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services.ManualTests;
@@ -25,7 +26,7 @@ public class GeminiClientTests
             .Returns(_testHttpClient);
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task GetGarbageBinCollectionTest()
     {
         //Arrange
@@ -39,7 +40,7 @@ public class GeminiClientTests
         Assert.Fail("Manual test only");
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task UpdateGarbageBinCollectionTest()
     {
         //Arrange
@@ -84,7 +85,7 @@ public class GeminiClientTests
         Assert.Fail("Manual test only");
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task GetFractionInTimeTest()
     {
         //Arrange
@@ -93,6 +94,51 @@ public class GeminiClientTests
 
         //Act
         var fractionsInTime = await testGeminiClient.GetFractionsInTime(testCollectionId);
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
+    [Fact(Skip = "Manual test only")]
+    public async Task GetPrivateContainerGroupFractionsTest()
+    {
+        //Arrange
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+        int testCollectionId = 1;
+
+        //Act
+        var fractionResponse = await testGeminiClient.GetPrivateContainerGroupFractions(testCollectionId);
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
+    [Fact]
+    public async Task UpdatePrivateContainerGroupFractionsTest()
+    {
+        //Arrange
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+        int testCollectionId = 1;
+
+        var fractions = new List<PrivateContainerGroupAgreementFractions>
+        {
+            new PrivateContainerGroupAgreementFractions()
+            {
+                AgreementId = 1,
+                FractionsInTime = new List<PrivateContainerGroupFractionInTime>
+                {
+                    new PrivateContainerGroupFractionInTime
+                    {
+                        DateFrom = DateTime.UtcNow.AddDays(-5).AddHours(12),
+                        FractionNumerator = 1,
+                        FractionDenominator = 1,
+                    }
+                }
+            }
+        };
+
+        //Act
+        var fractionResponse = await testGeminiClient.UpdatePrivateContainerGroupFractions(testCollectionId, fractions);
 
         //Assert
         Assert.Fail("Manual test only");
