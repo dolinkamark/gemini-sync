@@ -83,6 +83,49 @@ public static class PrivateContainerTimelineMapper
             .ToList();
     }
 
+    public static List<PrivateContainerGroupAgreementFractions> ToPrivateContainerFractionTimelinesNew(
+        List<PlaceGeminiToAgreementInterval> intervals)
+    {
+        if (intervals == null || intervals.Count == 0)
+            return new List<PrivateContainerGroupAgreementFractions>();
+
+        var agreementFractions = new List<PrivateContainerGroupAgreementFractions>();
+        var geminiAgreementIds = intervals
+            .SelectMany(interval => interval.GeminiToAgreementIds.Keys)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToList();
+
+        foreach(var geminiAgreementId in geminiAgreementIds)
+        {
+            var agreementFraction = new PrivateContainerGroupAgreementFractions
+            {
+                AgreementId = geminiAgreementId,
+            };
+
+            foreach(var interval in intervals)
+            {
+                var allAgreementCount = interval.GeminiToAgreementIds.Sum(s => s.Value?.Count ?? 0);
+                if(interval.GeminiToAgreementIds.Keys.Contains(geminiAgreementId))
+                {
+                    var relatedAgreements = interval.GeminiToAgreementIds[geminiAgreementId];
+
+                    agreementFraction.FractionsInTime.Add(new PrivateContainerGroupFractionInTime
+                    {
+                        DateFrom = interval.FromDate,
+                        DateTo = interval.ToDate,
+                        FractionNumerator = relatedAgreements.Count,
+                        FractionDenominator = allAgreementCount,
+                    });
+                }
+            }
+
+            agreementFractions.Add(agreementFraction);
+        }
+
+        return agreementFractions;
+    }
+
     private static DateTimeOffset ToUtcOffset(DateTime dt)
     {
         // Treat unspecified/local as UTC by convention (adjust if your domain expects local time).

@@ -135,14 +135,14 @@ namespace Ymir.GeminiSync.Services.ManualTests
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
             //Act
-            var intervals = GeminiUtils.BuildGeminiToAgreementIntervalsByDate(placeLines);
-            var groupedIntervals = intervals.GroupBy(i => i.PlaceNr);
+            var groupedLines = placeLines.GroupBy(l => l.PlaceNr);
 
-            foreach(var intervalsByPlace in groupedIntervals)
+            foreach(var agreementPlaceLines in groupedLines)
             {
-                if(intervalsByPlace.Key != 1183360) continue;
+                if (agreementPlaceLines.Key == 1183360) continue;
 
-                var fractionsTimeline = PrivateContainerTimelineMapper.ToPrivateContainerFractionTimelines(intervalsByPlace.ToList());
+                var geminiIntervals = GeminiUtils.BuildGeminiToAgreementIntervalsByDate(agreementPlaceLines.ToList());
+                var fractionsTimeline = PrivateContainerTimelineMapper.ToPrivateContainerFractionTimelinesNew(geminiIntervals);
 
                 //Adjust times
                 fractionsTimeline.ForEach(timeline =>
@@ -154,10 +154,10 @@ namespace Ymir.GeminiSync.Services.ManualTests
                     });
                 });
 
-                var isSuccessful = await testGeminiClient.UpdatePrivateContainerGroupFractions(intervalsByPlace.Key, fractionsTimeline);
+                var isSuccessful = await testGeminiClient.UpdatePrivateContainerGroupFractions(agreementPlaceLines.Key, fractionsTimeline);
                 if (!isSuccessful)
                 {
-                    Console.WriteLine("Whoops " + intervalsByPlace.Key);
+                    Console.WriteLine("Whoops " + agreementPlaceLines.Key);
                 }
             }
 

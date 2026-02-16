@@ -141,16 +141,15 @@ namespace Ymir.GeminiSync.Services.ManualTests
             {
                 var placeNr = placeGroup.Key;
                 var placeLines = placeGroup.ToList();
-
-                // Change points are dates when an interval could start.
-                // - every FromDate
-                // - (ToDate + 1 day) because ToDate is inclusive
                 var changePoints = new SortedSet<DateTime>();
+
                 foreach (var l in placeLines)
                 {
                     changePoints.Add(l.FromDate.Date);
                     if (l.ToDate.HasValue)
-                        changePoints.Add(l.ToDate.Value.Date.AddDays(1));
+                    {
+                        changePoints.Add(l.ToDate.Value.Date);
+                    }
                 }
 
                 var points = changePoints.ToList();
@@ -177,7 +176,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                         {
                             var to = (l.ToDate ?? DateTime.MaxValue.Date).Date;
                             var from = l.FromDate.Date;
-                            return from <= endForCompare && to >= intervalStart;
+                            return from <= endForCompare && to > intervalStart;
                         })
                         .ToList();
 
