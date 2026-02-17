@@ -22,4 +22,8 @@ public interface IGeminiClient
 
     Task<bool> UpdatePrivateContainerGroupFractions(
         int privateContainerGroupId, List<PrivateContainerGroupAgreementFractions> agreementFractions);
+
+    Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId);
+
+    Task<bool> UpdateUtilityConnectionTimeline(int agreementId, List<ConnectionTimelineDto> timelineList);
 }

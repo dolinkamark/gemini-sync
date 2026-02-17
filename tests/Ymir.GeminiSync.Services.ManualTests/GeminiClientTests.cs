@@ -113,7 +113,7 @@ public class GeminiClientTests
         Assert.Fail("Manual test only");
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task UpdatePrivateContainerGroupFractionsTest()
     {
         //Arrange
@@ -139,6 +139,31 @@ public class GeminiClientTests
 
         //Act
         var fractionResponse = await testGeminiClient.UpdatePrivateContainerGroupFractions(testCollectionId, fractions);
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
+    [Fact(Skip = "Manual test only")]
+    public async Task UpdateUtilityConnectionTimeline()
+    {
+        //Arrange
+        const int testAgreementId = 1669;
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+
+        var connectionTimeline = new List<ConnectionTimelineDto>
+        {
+            new ConnectionTimelineDto
+            {
+                AgreementId = 17571,
+                IsConnectedToGarbage = true,
+                IsConnectedToPublicContainer = false,
+                DateFrom = new DateTime(2014, 11, 1)
+            }
+        };
+
+        //Act
+        var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline(testAgreementId, connectionTimeline);
 
         //Assert
         Assert.Fail("Manual test only");

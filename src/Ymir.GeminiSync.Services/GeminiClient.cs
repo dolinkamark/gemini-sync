@@ -73,6 +73,8 @@ public class GeminiClient : IGeminiClient
 
     #endregion
 
+    #region Private containers
+
     public async Task<List<PrivateContainerFractionsResponse>> GetPrivateContainerGroupFractions(int privateContainerGroupId)
     {
         string url = $"{_settings.BaseUrl}/garbagebins/api/GarbagePrivateContainerGroup/{privateContainerGroupId}/FractionsInTime";
@@ -90,6 +92,26 @@ public class GeminiClient : IGeminiClient
         var response = await DoApiCallInternal(url, HttpMethod.Put, agreementFractions);
         return response.IsSuccessStatusCode;
     }
+
+    #endregion
+
+    #region Public containers
+
+    public async Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId)
+    {
+        string url = $"{_settings.BaseUrl}/garbagebins/api/garbage/utilityUnit/{agreementId}/connection";
+        return await DoApiCall<List<ConnectionTimelineDto>>(url);
+    }
+
+    public async Task<bool> UpdateUtilityConnectionTimeline(int agreementId, List<ConnectionTimelineDto> timelineList)
+    {
+        string url = $"{_settings.BaseUrl}/garbagebins/api/garbage/utilityUnit/{agreementId}/connection";
+
+        var response = await DoApiCallInternal(url, HttpMethod.Put, timelineList);
+        return response.IsSuccessStatusCode;
+    }
+
+    #endregion
 
     #region Private Helpers
 
