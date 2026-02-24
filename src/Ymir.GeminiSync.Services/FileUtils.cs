@@ -39,7 +39,7 @@ public static class FileUtils
         return items ?? new List<GarbageBinCollectionLine>();
     }
 
-    public static async Task<List<AgreementPlaceHistoryLine>> GetAgreementPlaceHistoryLines(string filePath)
+    public static async Task<List<AgreementPlaceHistoryLine>> ReadAgreementPlaceHistoryLines(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("File path is required.", nameof(filePath));
@@ -50,5 +50,18 @@ public static class FileUtils
         await using var stream = File.OpenRead(filePath);
         var items = await JsonSerializer.DeserializeAsync<List<AgreementPlaceHistoryLine>>(stream, Options);
         return items ?? new List<AgreementPlaceHistoryLine>();
+    }
+
+    public static async Task<List<AgreementConnectionLine>> ReadAgreementConnectionLines(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("File path is required.", nameof(filePath));
+
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException("JSON file not found.", filePath);
+
+        await using var stream = File.OpenRead(filePath);
+        var items = await JsonSerializer.DeserializeAsync<List<AgreementConnectionLine>>(stream, Options);
+        return items ?? new List<AgreementConnectionLine>();
     }
 }

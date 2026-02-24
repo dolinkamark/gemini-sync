@@ -16,14 +16,14 @@ public interface IGeminiClient
 
     Task<bool> UpdateGarbageBinCollection(GarbageBinsStateInTimeDto garbageBinsStates);
 
-
     //Private containers
     Task<List<PrivateContainerFractionsResponse>> GetPrivateContainerGroupFractions(int privateContainerGroupId);
 
     Task<bool> UpdatePrivateContainerGroupFractions(
         int privateContainerGroupId, List<PrivateContainerGroupAgreementFractions> agreementFractions);
 
+    //Utility connection
     Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId);
 
-    Task<bool> UpdateUtilityConnectionTimeline(int agreementId, List<ConnectionTimelineDto> timelineList);
+    Task<bool> UpdateUtilityConnectionTimeline(int agreementId, UtilityUnitConnectionUpdateDto updateDto);
 }

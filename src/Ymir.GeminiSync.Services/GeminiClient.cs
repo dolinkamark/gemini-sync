@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Models.Containers;
@@ -21,6 +22,7 @@ public class GeminiClient : IGeminiClient
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
         _options.Converters.Add(new UtcDateTimeConverter());
+        _options.Converters.Add(new JsonStringEnumConverter());
 
         _settings = settings;
         _httpClientFactory = httpClientFactory;
@@ -103,11 +105,11 @@ public class GeminiClient : IGeminiClient
         return await DoApiCall<List<ConnectionTimelineDto>>(url);
     }
 
-    public async Task<bool> UpdateUtilityConnectionTimeline(int agreementId, List<ConnectionTimelineDto> timelineList)
+    public async Task<bool> UpdateUtilityConnectionTimeline(int agreementId, UtilityUnitConnectionUpdateDto updateDto)
     {
         string url = $"{_settings.BaseUrl}/garbagebins/api/garbage/utilityUnit/{agreementId}/connection";
 
-        var response = await DoApiCallInternal(url, HttpMethod.Put, timelineList);
+        var response = await DoApiCallInternal(url, HttpMethod.Put, updateDto);
         return response.IsSuccessStatusCode;
     }
 

@@ -41,8 +41,6 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             foreach (var place in groupedByPlaces)
             {
-               // if (place.Key != 40004) continue;
-
                 var states = GeminiUtils.BuildAgreementIntervalsByDate(place.Value);
                 var stateInTime = new GarbageBinsStateInTimeDto();
 
@@ -69,7 +67,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                     stateInTime.StateInTime.Add(collectionDto);
                 }
 
-                if(stateInTime.StateInTime.Count > 0)
+                if (stateInTime.StateInTime.Count > 0)
                 {
                     var isSuccessful = await testGeminiClient.UpdateGarbageBinCollection(stateInTime);
                 }
@@ -88,7 +86,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             const string filePath = "E:\\Temp\\agreements_to_places_with_all.json";
 
             DateTime minDate = new DateTime(1900, 1, 1);
-            var placeLines = await FileUtils.GetAgreementPlaceHistoryLines(filePath);
+            var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
             //Act
@@ -97,7 +95,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             var intervalGroups = intervals
                 .GroupBy(i => i.PlaceNr);
 
-            foreach(var intervalGroup in intervalGroups)
+            foreach (var intervalGroup in intervalGroups)
             {
                 var currentIntervals = intervalGroup.ToList();
                 var fractions = GeminiUtils.ToFractionsInTime(currentIntervals);
@@ -114,7 +112,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 var timelines = GeminiUtils.ToFractionTimelines(fractions);
 
                 var isSuccessful = await testGeminiClient.UpdateFractionsInTime(intervalGroup.Key, timelines);
-                if(!isSuccessful)
+                if (!isSuccessful)
                 {
                     Console.WriteLine("Whoops " + intervalGroup.Key);
                 }
@@ -124,22 +122,22 @@ namespace Ymir.GeminiSync.Services.ManualTests
             Assert.Fail("Manual test only");
         }
 
-        [Fact]
+        [Fact(Skip = "Manual test only")]
         public async Task UpdatePrivateContainerFractionsInTime()
         {
             //Arrange
             const string filePath = "E:\\Temp\\Ymir\\private_container_agreements_to_places.json";
 
             DateTime minDate = new DateTime(1900, 1, 1);
-            var placeLines = await FileUtils.GetAgreementPlaceHistoryLines(filePath);
+            var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
             //Act
             var groupedLines = placeLines.GroupBy(l => l.PlaceNr);
 
-            foreach(var agreementPlaceLines in groupedLines)
+            foreach (var agreementPlaceLines in groupedLines)
             {
-                if (agreementPlaceLines.Key == 1183360) continue;
+                if (agreementPlaceLines.Key != 1174129) continue;
 
                 var geminiIntervals = GeminiUtils.BuildGeminiToAgreementIntervalsByDate(agreementPlaceLines.ToList());
                 var fractionsTimeline = PrivateContainerTimelineMapper.ToPrivateContainerFractionTimelinesNew(geminiIntervals);
@@ -158,6 +156,74 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 if (!isSuccessful)
                 {
                     Console.WriteLine("Whoops " + agreementPlaceLines.Key);
+                }
+            }
+
+            //Assert
+            Assert.Fail("Manual test only");
+        }
+
+        [Fact(Skip = "Manual test only")]
+        public async Task UptadeUtilityConnections()
+        {
+            //Arrange
+            const string filePath = "E:\\Temp\\Ymir\\utility_connections.json";
+            const string publicContainerName = "Bruksdel nedgravd";
+
+            var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+
+            DateTime minDate = new DateTime(1900, 1, 1);
+            var connectionLines = await FileUtils.ReadAgreementConnectionLines(filePath);
+
+            var agreementGroups = connectionLines.GroupBy(l => l.AgreementId);
+            foreach (var agreementGroup in agreementGroups)
+            {
+                var timelines = new List<ConnectionTimelineDto>();
+                var currentLines = agreementGroup
+                    .OrderBy(l => l.FromDate)
+                    .ToList();
+
+                //Closed intervals
+                for (int i = 0; i < currentLines.Count - 1; i++)
+                {
+                    bool isPublicContainer = currentLines[i].PlaceType.ToLower() == publicContainerName.ToLower();
+
+                    timelines.Add(new ConnectionTimelineDto
+                    {
+                        AgreementId = currentLines[i].ExternalAgreementId,
+                        IsConnectedToGarbagePickupSystem = true,
+                        IsConnectedToPublicContainer = isPublicContainer,
+                        DateFrom = currentLines[i].FromDate.AddHours(12),
+                        DateTo = currentLines[i+1].FromDate.AddHours(-12),
+                        UtilityUnitConnectionType = UtilityUnitConnectionType.Housing
+                    });
+                }
+
+                //Last interval
+                var lastInterval = currentLines[^1];
+
+                timelines.Add(new ConnectionTimelineDto
+                {
+                    AgreementId = lastInterval.ExternalAgreementId,
+                    IsConnectedToGarbagePickupSystem = true,
+                    IsConnectedToPublicContainer = lastInterval.PlaceType?.ToLower() == publicContainerName.ToLower(),
+                    DateFrom = lastInterval.FromDate.AddHours(12),
+                    DateTo = lastInterval.ToDate?.AddHours(12),
+                    UtilityUnitConnectionType = UtilityUnitConnectionType.Housing
+                });
+
+                var updateDto = new UtilityUnitConnectionUpdateDto
+                {
+                    ConnectionsInTime = timelines
+                };
+
+                try
+                {
+                    await testGeminiClient.UpdateUtilityConnectionTimeline(agreementGroup.Key, updateDto);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ooops error at {lastInterval.ExternalAgreementId}");
                 }
             }
 
