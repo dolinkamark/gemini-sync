@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using Ymir.GeminiSync.Services.Models;
+﻿using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Models.Containers;
 
 namespace Ymir.GeminiSync.Services;
@@ -21,6 +20,13 @@ public interface IGeminiClient
 
     Task<bool> UpdatePrivateContainerGroupFractions(
         int privateContainerGroupId, List<PrivateContainerGroupAgreementFractions> agreementFractions);
+
+    //Garbage bin pickups
+    Task<List<GarbagePickupDto>> GetGarbageBinPickups(int garbageCollectionId);
+
+    Task<bool> AddGarbageBinPickup(GarbagePickupDto pickupDto);
+
+    Task<bool> DeleteGarbageBinPickup(int garbageCollectionId, int pickupId);
 
     //Utility connection
     Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId);

@@ -86,6 +86,67 @@ public class GeminiClientTests
     }
 
     [Fact(Skip = "Manual test only")]
+    public async Task GetGarbageBinPickupsTest()
+    {
+        //Arrange
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+        const int testCollectionId = 37962;
+
+        //Act
+        var garbageBinPickups = await testGeminiClient.GetGarbageBinPickups(testCollectionId);
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
+    [Fact(Skip = "Manual test only")]
+    public async Task AddGarbageBinPickupTest()
+    {
+        //Arrange
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+        const int testCollectionId = 37962;
+
+        var testGarbageBinPickup = new GarbagePickupDto
+        {
+            GarbageBinCollectionId = testCollectionId,
+            GarbageBinPickUpId = 2,
+            UtilityUnitType = GarbageBinUtilityUnitType.Housing,
+            ExecutedDate = new DateTime(2026, 1, 1, 12, 0, 0),
+            ExtraPickup = false,
+            GarbageBins = new List<GarbageSingleBinPickupDto>
+            {
+                new GarbageSingleBinPickupDto
+                {
+                    GarbageBinId = 8304348,
+                    BinSize = 120,
+                    GarbageBinCategory = GarbageBinCategory.OtherWaste
+                }
+            }
+        };
+
+        //Act
+        var addResult = await testGeminiClient.AddGarbageBinPickup(testGarbageBinPickup);
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
+    [Fact(Skip = "Manual test only")]
+    public async Task DeleteGarbageBinPickupTest()
+    {
+        //Arrange
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+        const int testCollectionId = 37962;
+        const int testPickupId = 1;
+
+        //Act
+        var deleteResult = await testGeminiClient.DeleteGarbageBinPickup(testCollectionId, testPickupId);
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
+    [Fact(Skip = "Manual test only")]
     public async Task GetFractionInTimeTest()
     {
         //Arrange
