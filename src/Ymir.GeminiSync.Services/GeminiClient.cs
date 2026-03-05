@@ -121,6 +121,23 @@ public class GeminiClient : IGeminiClient
 
     #endregion
 
+    #region Private container pickups
+
+    public async Task<List<ContainerPickupResponseDto>> GetPrivateContainerPickups(int containerGroupId)
+    {
+        string url = $"{_settings.BaseUrl}/garbagebins/api/GarbagePrivateContainerGroup/{containerGroupId}/pickups";
+        return await DoApiCall<List<ContainerPickupResponseDto>>(url);
+    }
+
+    public async Task<bool> AddPrivateContainerPickup(ContainerPickupDto pickupDto)
+    {
+        string url = $"{_settings.BaseUrl}/garbagebins/api/GarbagePrivateContainerGroup/{pickupDto.GarbagePrivateContainerPickupId}/pickups";
+        var response = await DoApiCallInternal(url, HttpMethod.Post, pickupDto);
+        return response.IsSuccessStatusCode;
+    }
+
+    #endregion
+
     #region Public containers
 
     public async Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId)
