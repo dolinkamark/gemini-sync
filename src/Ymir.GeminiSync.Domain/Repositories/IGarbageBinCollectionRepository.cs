@@ -2,5 +2,5 @@
 
 public interface IGarbageBinCollectionRepository
 {
-    Task<List<GarbageBinCollectionLine>> GetGarbageBinCollections(int customerId);
+    Task<List<GarbageBinCollectionLine>> GetGarbageBinCollections(int customerId, string placeTypeDescription);
 }

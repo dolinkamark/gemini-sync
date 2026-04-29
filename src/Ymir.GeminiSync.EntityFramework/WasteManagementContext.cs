@@ -6,14 +6,19 @@ namespace Ymir.GeminiSync.EntityFramework;
 
 public class WasteManagementContext : DbContext
 {
+    public WasteManagementContext(DbContextOptions<WasteManagementContext> options)
+        : base(options)
+    {
+    }
+
     public DbSet<Place> Places { get; set; }
+    public DbSet<GarbageBinCollectionLine> GarbageBinCollections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         modelBuilder.Entity<GarbageBinCollectionLine>()
-            .HasNoKey()
-            .ToView("GarbageBinCollectionsView");
+            .HasNoKey();
     }
 }

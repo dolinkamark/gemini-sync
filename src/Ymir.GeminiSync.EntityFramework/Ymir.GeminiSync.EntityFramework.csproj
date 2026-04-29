@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Ymir.GeminiSync.Domain\Ymir.GeminiSync.Domain.csproj" />
+    <ProjectReference Include="..\Ymir.GeminiSync.Domain\Ymir.GeminiSync.Domain.csproj" />
   </ItemGroup>
 
 </Project>

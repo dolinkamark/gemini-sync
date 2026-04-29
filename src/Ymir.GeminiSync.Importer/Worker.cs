@@ -16,7 +16,8 @@ public class Worker(
             }
 
             const int customerId = 1;
-            var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId);
+            const string placeTypeDescription = "Husstand";
+            var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypeDescription);
 
 
 
