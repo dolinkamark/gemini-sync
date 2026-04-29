@@ -27,7 +27,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
         public async Task UpdateGarbageBins()
         {
             //Arrange
-            const string filePath = "E:\\Temp\\agreement_lines.json";
+            const string filePath = "E:\\Temp\\Ymir\\agreement_lines_20260312.json";
             var noEndDate = new DateTime(1900, 1, 1);
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
             var collectionLine = await FileUtils.ReadGarbageBinListAsync(filePath);
@@ -41,6 +41,8 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             foreach (var place in groupedByPlaces)
             {
+                if (place.Key != 37962) continue;
+
                 var states = GeminiUtils.BuildAgreementIntervalsByDate(place.Value);
                 var stateInTime = new GarbageBinsStateInTimeDto();
 
@@ -49,7 +51,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                     var collectionDto = new GarbageBinsCollectionDto
                     {
                         GarbageBinCollectionId = place.Key,
-                        NumberOfConnectedUtilityUnit = state.Lines.Count,
+                        NumberOfConnectedUtilityUnit = 1,
                         UtilityUnitType = GarbageBinUtilityUnitType.Housing,
                         GarbageBins = state.Lines.Select(l => new GarbageBinDto
                         {
@@ -70,6 +72,11 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 if (stateInTime.StateInTime.Count > 0)
                 {
                     var isSuccessful = await testGeminiClient.UpdateGarbageBinCollection(stateInTime);
+
+                    if (!isSuccessful)
+                    {
+                        Console.WriteLine("Ooops, something went wrong");
+                    }
                 }
             }
 
@@ -83,7 +90,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
         public async Task UpdateFractionsInTime()
         {
             //Arrange
-            const string filePath = "E:\\Temp\\agreements_to_places_with_all.json";
+            const string filePath = "E:\\Temp\\Ymir\\agreements_to_places_with_all.json";
 
             DateTime minDate = new DateTime(1900, 1, 1);
             var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
@@ -137,8 +144,6 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             foreach (var agreementPlaceLines in groupedLines)
             {
-                if (agreementPlaceLines.Key != 1174129) continue;
-
                 var geminiIntervals = GeminiUtils.BuildGeminiToAgreementIntervalsByDate(agreementPlaceLines.ToList());
                 var fractionsTimeline = PrivateContainerTimelineMapper.ToPrivateContainerFractionTimelinesNew(geminiIntervals);
 
@@ -224,6 +229,51 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Ooops error at {lastInterval.ExternalAgreementId}");
+                }
+            }
+
+            //Assert
+            Assert.Fail("Manual test only");
+        }
+
+        [Fact(Skip = "Manual test only")]
+        public async Task UpdateLoglines()
+        {
+            //Arrange
+            const string filePath = "E:\\Temp\\Ymir\\logline_export.json";
+            var loglineExportLines = await FileUtils.ReadLogLineExportLines(filePath);
+
+            var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+
+            //Act
+            var loglinesByPlace = loglineExportLines
+                .Where(l => l.Description != "NULL")
+                .GroupBy(l => l.PlaceNr);
+
+            foreach(var loglineGroup in loglinesByPlace)
+            {
+                if (loglineGroup.Key != 1174129) continue;
+
+                foreach(var logline in loglineGroup.ToList())
+                {
+                    if(logline.Message == "Ja")
+                    {
+                        var containerPickupDto = new ContainerPickupDto
+                        {
+                            GarbagePrivateContainerPickupId = logline.LogLineId,
+                            ExecutedDate = logline.Time,
+                            GarbagePrivateContainerGroupId = logline.PlaceNr,
+                            WasteType = GeminiUtils.FromLoglineName(logline.Name)
+                        };
+
+                        var isSuccessful = await testGeminiClient.AddPrivateContainerPickup(containerPickupDto);
+                        if(!isSuccessful)
+                        {
+                            Console.WriteLine($"Oooops something went wrong with {logline.LogLineId}");
+                        }
+
+                        await Task.Delay(50);
+                    }
                 }
             }
 

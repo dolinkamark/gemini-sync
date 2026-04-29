@@ -2,9 +2,9 @@
 
 public class LoglineExportLine
 {
-    public long LogLineId { get; set; }
+    public int LogLineId { get; set; }
 
-    public long AgreementLineId { get; set; }
+    public int AgreementLineId { get; set; }
 
     public DateTime Time { get; set; }
 

@@ -630,6 +630,21 @@ namespace Ymir.GeminiSync.Services.ManualTests
             };
         }
 
+        public static GarbageBinCategory FromLoglineName(string loglineName)
+        {
+            if (string.IsNullOrWhiteSpace(loglineName))
+                return GarbageBinCategory.OtherWaste;
+
+            var lowerCaseName = loglineName.Trim().ToLowerInvariant();
+
+            if (lowerCaseName.Contains("restavfall")) return GarbageBinCategory.OtherWaste;
+            if (lowerCaseName.Contains("papp/papir")) return GarbageBinCategory.Paper;
+            if (lowerCaseName.Contains("bio")) return GarbageBinCategory.Bio;
+            if (lowerCaseName.Contains("glass")) return GarbageBinCategory.GlassAndMetal;
+
+            return GarbageBinCategory.OtherWaste;
+        }
+
         private static bool SameAgreements(List<int> a, List<int> b)
         {
             if (a.Count != b.Count) return false;

@@ -17,5 +17,5 @@ WHERE ap.CustomerId = 270
            AND pt.CustomerId = ppt.CustomerId
         WHERE ppt.PlaceNr = ap.PlaceNr
           AND ppt.PASystem = ap.PASystem
-          AND pt.Description = 'Nedgravd privat'
+          AND pt.Description = 'Spann'
     )
