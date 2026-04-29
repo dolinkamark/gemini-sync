@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Ymir.GeminiSync.SyncFunction": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7191",
+      "launchBrowser": false
+    }
+  }
+}
