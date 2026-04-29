@@ -1,7 +1,7 @@
 ﻿using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Models.Containers;
 
-namespace Ymir.GeminiSync.Services;
+namespace Ymir.GeminiSync.Services.Abstract;
 
 public interface IGeminiClient
 {
