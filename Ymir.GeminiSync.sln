@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.Services.Ma
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.Domain", "src\Ymir.GeminiSync.Domain\Ymir.GeminiSync.Domain.csproj", "{D5C7471C-1888-44FA-B8B7-A71819DB16DD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.EntityFramework", "Ymir.GeminiSync.EntityFramework\Ymir.GeminiSync.EntityFramework.csproj", "{BC869D35-4AF8-4E46-B2D0-5EB1E7ECC646}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.EntityFramework", "src\Ymir.GeminiSync.EntityFramework\Ymir.GeminiSync.EntityFramework.csproj", "{BC869D35-4AF8-4E46-B2D0-5EB1E7ECC646}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.Services.UnitTests", "tests\Ymir.GeminiSync.Services.UnitTests\Ymir.GeminiSync.Services.UnitTests.csproj", "{A3180DD3-1ABE-43DE-A270-29D8FD3D4D11}"
 EndProject
