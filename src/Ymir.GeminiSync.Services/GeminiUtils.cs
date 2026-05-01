@@ -447,15 +447,15 @@ namespace Ymir.GeminiSync.Services.ManualTests
         /// - ToDate is treated as the *change date* (exclusive). So an interval ends the day before ToDate.Date.
         /// - ToDate == 1900-01-01 (or <= that) means "open-ended" (no end).
         /// </summary>
-        public static List<CollectionStateInTime> BuildAgreementIntervalsByDate(List<GarbageBinCollectionLine> lines)
+        public static List<StateInTimeCollection> BuildAgreementIntervalsByDate(List<GarbageBinCollectionLine> lines)
         {
             if (lines == null || lines.Count == 0)
-                return new List<CollectionStateInTime>();
+                return new List<StateInTimeCollection>();
 
             // date -> (adds, removes)
             var events = new SortedDictionary<DateTime, (List<GarbageBinCollectionLine> Adds, List<GarbageBinCollectionLine> Removes)>();
 
-            void Ensure(DateTime d)
+            void EnsureDateValidity(DateTime d)
             {
                 if (!events.TryGetValue(d, out _))
                     events[d] = (new List<GarbageBinCollectionLine>(), new List<GarbageBinCollectionLine>());
@@ -465,27 +465,27 @@ namespace Ymir.GeminiSync.Services.ManualTests
             {
                 var start = line.FromDate.Date;
 
-                Ensure(start);
+                EnsureDateValidity(start);
                 events[start].Adds.Add(line);
 
                 var endExclusive = GetEndExclusiveDateOrNull(line.ToDate);
                 if (endExclusive.HasValue)
                 {
-                    Ensure(endExclusive.Value);
+                    EnsureDateValidity(endExclusive.Value);
                     events[endExclusive.Value].Removes.Add(line);
                 }
             }
 
             // Active set keyed by AgreementLineId (stable + unique in your model)
             var active = new Dictionary<long, GarbageBinCollectionLine>();
-            var result = new List<CollectionStateInTime>();
+            var result = new List<StateInTimeCollection>();
 
             DateTime? currentStart = null;
 
-            foreach (var kvp in events)
+            foreach (var currentEvent in events)
             {
-                var date = kvp.Key;
-                var (adds, removes) = kvp.Value;
+                var date = currentEvent.Key;
+                var (adds, removes) = currentEvent.Value;
 
                 if (currentStart == null)
                 {
@@ -505,7 +505,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                     // Only emit if we had something active during this span
                     if (active.Count > 0)
                     {
-                        result.Add(new CollectionStateInTime
+                        result.Add(new StateInTimeCollection
                         {
                             StartDate = currentStart.Value.AddHours(12),
                             EndDate = endInclusive.AddHours(12),
@@ -522,7 +522,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             // Trailing open-ended segment
             if (currentStart != null && active.Count > 0)
             {
-                result.Add(new CollectionStateInTime
+                result.Add(new StateInTimeCollection
                 {
                     StartDate = currentStart.Value.AddHours(12),
                     EndDate = null,
@@ -556,9 +556,9 @@ namespace Ymir.GeminiSync.Services.ManualTests
             }
         }
 
-        public static List<CollectionStateInTime> SplitByDates(List<GarbageBinCollectionLine> lines)
+        public static List<StateInTimeCollection> SplitByDates(List<GarbageBinCollectionLine> lines)
         {
-            var states = new List<CollectionStateInTime>();
+            var states = new List<StateInTimeCollection>();
             var noEndDate = new DateTime(1900, 1, 1);
             var startDateGroups = lines
                 .GroupBy(l => l.FromDate.Date)
@@ -567,7 +567,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             for(int i = 0; i < startDateGroups.Count; ++i)
             {
-                var currentState = new CollectionStateInTime();
+                var currentState = new StateInTimeCollection();
                 var currentGroup = startDateGroups[i];
 
                 currentState.StartDate = currentGroup.Key;
@@ -669,13 +669,5 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             return true;
         }
-    }
-
-    public class CollectionStateInTime
-    {
-        public DateTime StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-
-        public List<GarbageBinCollectionLine> Lines { get; set; } = new List<GarbageBinCollectionLine>();
     }
 }
