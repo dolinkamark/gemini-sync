@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.EntityFramework;
 using Ymir.GeminiSync.EntityFramework.Repositories;
+using Ymir.GeminiSync.Services.Settings;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -18,6 +19,13 @@ builder.Services
 
 builder.Services.AddDbContext<WasteManagementContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("WasteManagementContext")));
+
+var geminiSettings = builder.Configuration
+    .GetSection(nameof(GeminiSettings))
+    .Get<GeminiSettings>() ?? new GeminiSettings();
+builder.Services.AddSingleton(geminiSettings);
+
+builder.Services.AddHttpClient();
 builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();
 
 builder.Build().Run();

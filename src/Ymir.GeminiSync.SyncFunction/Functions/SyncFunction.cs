@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using Ymir.GeminiSync.Services.Abstract;
 using Ymir.GeminiSync.SyncFunction.Functions.Models;
 
 namespace Ymir.GeminiSync.SyncFunction.Functions;
 
-public sealed class SyncFunction(ILogger<SyncFunction> logger)
+public sealed class SyncFunction(
+    IGeminiClient geminiClient,
+    ILogger<SyncFunction> logger)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
