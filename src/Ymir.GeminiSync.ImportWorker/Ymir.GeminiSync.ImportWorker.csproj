@@ -8,7 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ymir.GeminiSync.Domain\Ymir.GeminiSync.Domain.csproj" />
+    <ProjectReference Include="..\Ymir.GeminiSync.EntityFramework\Ymir.GeminiSync.EntityFramework.csproj" />
+    <ProjectReference Include="..\Ymir.GeminiSync.Services\Ymir.GeminiSync.Services.csproj" />
   </ItemGroup>
 </Project>
