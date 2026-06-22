@@ -1,5 +1,7 @@
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.Services.Abstract;
+using Microsoft.Extensions.Options;
+using Ymir.GeminiSync.Importer.Models;
 
 namespace Ymir.GeminiSync.Importer;
 
@@ -7,14 +9,16 @@ public class Worker(
     ILogger<Worker> logger,
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinCollectionService collectionService,
+    IOptions<SyncOptions> importerOptions,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            const int customerId = 270;
-            const string placeTypeDescription = "Spann";
+            var options = importerOptions.Value;
+            var customerId = options.CustomerId;
+            var placeTypeDescription = options.PlaceTypeDescription;
             var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypeDescription);
 
             Console.WriteLine($"Total bins returned: {garbageBins.Count}");

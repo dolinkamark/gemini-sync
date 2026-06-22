@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Serilog;
 using System.CommandLine;
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.EntityFramework;
 using Ymir.GeminiSync.EntityFramework.Repositories;
 using Ymir.GeminiSync.Importer;
+using Ymir.GeminiSync.Importer.Models;
 using Ymir.GeminiSync.Services;
 using Ymir.GeminiSync.Services.Abstract;
 
@@ -18,13 +20,26 @@ var deleteOption = new Option<bool>("--delete")
     Description = "Delete the selected entity data before processing."
 };
 
-var rootCommand = new RootCommand("GeminiSync importer")
+var customerIdOption = new Option<int?>("--customer-id")
 {
-    entityOption,
-    deleteOption
+    Description = "Customer id to process."
 };
 
+var placeTypeDescriptionOption = new Option<string?>("--place-type-description")
+{
+    Description = "Place type description to filter on."
+};
+
+var rootCommand = CreateRootCommand();
+var parseResult = rootCommand.Parse(args);
+
+if (parseResult.Errors.Count > 0)
+{
+    return parseResult.Invoke();
+}
+
 var builder = Host.CreateApplicationBuilder(args);
+var importerOptions = BuildImporterOptions(builder.Configuration, parseResult);
 
 builder.Services.AddSerilog((services, loggerConfiguration) =>
 {
@@ -37,29 +52,39 @@ builder.Services.AddSerilog((services, loggerConfiguration) =>
 builder.Services.AddDbContext<WasteManagementContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("WasteManagement")));
 
+builder.Services.AddSingleton(Options.Create(importerOptions));
+
 builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();
 builder.Services.AddTransient<IGarbageBinCollectionService, GarbageBinCollectionService>();
-
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
-host.Run();
+await host.RunAsync();
 
-static RootCommand CreateRootCommand(string[] args)
+return Environment.ExitCode;
+
+RootCommand CreateRootCommand()
 {
-    var entityOption = new Option<string?>("--entity")
-    {
-        Description = "The entity to import/sync/delete."
-    };
-
-    var deleteOption = new Option<bool>("--delete")
-    {
-        Description = "Delete the selected entity data before processing."
-    };
-
     return new RootCommand("GeminiSync importer")
     {
         entityOption,
-        deleteOption
+        deleteOption,
+        customerIdOption,
+        placeTypeDescriptionOption
+    };
+}
+
+SyncOptions BuildImporterOptions(IConfiguration configuration, ParseResult parseResult)
+{
+    var configuredOptions = configuration
+        .GetSection(SyncOptions.SectionName)
+        .Get<SyncOptions>() ?? new SyncOptions();
+
+    return new SyncOptions
+    {
+        Entities = parseResult.GetValue(entityOption) ?? configuredOptions.Entities,
+        Delete = parseResult.GetValue(deleteOption) || configuredOptions.Delete,
+        CustomerId = parseResult.GetValue(customerIdOption) ?? configuredOptions.CustomerId,
+        PlaceTypeDescription = parseResult.GetValue(placeTypeDescriptionOption) ?? configuredOptions.PlaceTypeDescription
     };
 }

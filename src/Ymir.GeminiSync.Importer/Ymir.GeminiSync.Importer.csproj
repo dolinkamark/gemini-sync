@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Ymir.GeminiSync.Importer-1c7ccae5-989f-492d-ae0a-b57013df5a6d</UserSecretsId>
   </PropertyGroup>
@@ -21,5 +20,9 @@
     <ProjectReference Include="..\Ymir.GeminiSync.EntityFramework\Ymir.GeminiSync.EntityFramework.csproj" />
     <ProjectReference Include="..\Ymir.GeminiSync.Domain\Ymir.GeminiSync.Domain.csproj" />
     <ProjectReference Include="..\Ymir.GeminiSync.Services\Ymir.GeminiSync.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
   </ItemGroup>
 </Project>
