@@ -21,8 +21,4 @@
     <ProjectReference Include="..\Ymir.GeminiSync.Domain\Ymir.GeminiSync.Domain.csproj" />
     <ProjectReference Include="..\Ymir.GeminiSync.Services\Ymir.GeminiSync.Services.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
 </Project>

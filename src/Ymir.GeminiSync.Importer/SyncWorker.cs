@@ -1,24 +1,27 @@
-using Ymir.GeminiSync.Domain.Repositories;
-using Ymir.GeminiSync.Services.Abstract;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.Importer.Models;
+using Ymir.GeminiSync.Services.Abstract;
 
 namespace Ymir.GeminiSync.Importer;
 
-public class Worker(
-    ILogger<Worker> logger,
+public class SyncWorker(
+    ILogger<SyncWorker> logger,
+    IOptions<SyncOptions> syncOptions,
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinCollectionService collectionService,
-    IOptions<SyncOptions> importerOptions,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            var options = importerOptions.Value;
+            var options = syncOptions.Value;
             var customerId = options.CustomerId;
             var placeTypeDescription = options.PlaceTypeDescription;
+
+            //Step 1) Validations
             var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypeDescription);
 
             Console.WriteLine($"Total bins returned: {garbageBins.Count}");
@@ -30,6 +33,9 @@ public class Worker(
             var groupedBins = collectionService.BuildStateInTimeCollections(otherWasteBins);
 
             Console.WriteLine($"Grouped bin count (state of time): {otherWasteBins.Count}");
+
+            Console.WriteLine("State in time example: ");
+            Console.WriteLine(JsonSerializer.Serialize(groupedBins.FirstOrDefault()?.ToString()));
         }
         catch (Exception ex)
         {

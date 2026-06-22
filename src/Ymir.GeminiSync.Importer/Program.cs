@@ -56,7 +56,7 @@ builder.Services.AddSingleton(Options.Create(importerOptions));
 
 builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();
 builder.Services.AddTransient<IGarbageBinCollectionService, GarbageBinCollectionService>();
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<SyncWorker>();
 
 var host = builder.Build();
 await host.RunAsync();
