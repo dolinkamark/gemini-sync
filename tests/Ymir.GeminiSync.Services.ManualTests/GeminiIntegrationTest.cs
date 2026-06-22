@@ -41,7 +41,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             foreach (var place in groupedByPlaces)
             {
-                if (place.Key != 37962) continue;
+                //if (place.Key != 37962) continue;
 
                 var states = GeminiUtils.BuildAgreementIntervalsByDate(place.Value);
                 var stateInTime = new GarbageBinsStateInTimeDto();
@@ -55,9 +55,9 @@ namespace Ymir.GeminiSync.Services.ManualTests
                         UtilityUnitType = GarbageBinUtilityUnitType.Housing,
                         GarbageBins = state.Lines.Select(l => new GarbageBinDto
                         {
-                            GarbageBinId = l.AgreementLineId,
+                            GarbageBinId = (int)l.AgreementLineId,
                             GarbageBinCategory = GeminiUtils.ToGarbageBinCategory(l.FractionName),
-                            BinSize = int.Parse(l.ShortName),
+                            BinSize = l.ShortName,
                             FrequencyToBeInvoiced = GarbageBinsFrequencyToBeInvoiced.BiWeekly,
                             IsLockable = l.HasLock,
                             IsCompactor = false
@@ -90,7 +90,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
         public async Task UpdateFractionsInTime()
         {
             //Arrange
-            const string filePath = "E:\\Temp\\Ymir\\agreements_to_places_with_all.json";
+            const string filePath = "E:\\Temp\\Ymir\\agreement_places_271_20260521.json";
 
             DateTime minDate = new DateTime(1900, 1, 1);
             var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
@@ -100,7 +100,10 @@ namespace Ymir.GeminiSync.Services.ManualTests
             var intervals = GeminiUtils.BuildIntervalsByDate(placeLines);
 
             var intervalGroups = intervals
-                .GroupBy(i => i.PlaceNr);
+                .GroupBy(i => i.PlaceNr)
+                .ToList();
+
+            var processed = 0;
 
             foreach (var intervalGroup in intervalGroups)
             {
@@ -122,6 +125,10 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 if (!isSuccessful)
                 {
                     Console.WriteLine("Whoops " + intervalGroup.Key);
+                }
+                else
+                {
+                    processed++;
                 }
             }
 
@@ -280,5 +287,12 @@ namespace Ymir.GeminiSync.Services.ManualTests
             //Assert
             Assert.Fail("Manual test only");
         }
+
+
+        public async Task ResetGarbageBinCollections()
+        {
+
+        }
+
     }
 }
