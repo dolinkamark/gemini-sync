@@ -3,8 +3,8 @@ import json
 import re
 
 # ========= CONFIG (edit these) =========
-INPUT_FILE = r"E:\Temp\Ymir\private_container_agreements_to_places.txt"
-OUTPUT_FILE = r"E:\Temp\Ymir\private_container_agreements_to_places.json"          # e.g. r"output.json" (None => print to stdout)
+INPUT_FILE = r"E:\Temp\Ymir\garbage_collection_places.txt"
+OUTPUT_FILE = r"E:\Temp\Ymir\garbage_collection_places.json"          # e.g. r"output.json" (None => print to stdout)
 OUTPUT_AS_ARRAY = True     # True => always output a JSON array
 SKIP_HEADERS = False         # True => skip SSMS header + dashed separator lines
 # ======================================
@@ -26,7 +26,6 @@ INT_FIELDS = {
     "AgreementId",
     "ExternalAgreementId",
 }
-BOOL_FIELDS = {"HasLock"}
 DATETIME_FIELDS = {"FromDate", "ToDate", "CreatedAt", "UpdatedAt"}
 
 _SQL_DT_RE = re.compile(
