@@ -11,4 +11,6 @@ public class SyncOptions
     public int CustomerId { get; set; }
 
     public string PlaceTypeDescription { get; set; }
+
+    public bool UseFileCache { get; set; }
 }

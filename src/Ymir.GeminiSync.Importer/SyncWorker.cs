@@ -21,21 +21,25 @@ public class SyncWorker(
             var customerId = options.CustomerId;
             var placeTypeDescription = options.PlaceTypeDescription;
 
-            //Step 1) Validations
+            //Step 1) Verify if the collections are correct
             var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypeDescription);
+
+            if(options.UseFileCache)
+            {
+                File.WriteAllText("Cache/garbage_bins.json", JsonSerializer.Serialize(garbageBins));
+            }
 
             Console.WriteLine($"Total bins returned: {garbageBins.Count}");
 
-            var otherWasteBins = garbageBins
-                .Where(b => b.FractionName.ToLower() == "restavfall")
-                .ToList();
+            var groupedBins = collectionService.BuildStateInTimeCollections(garbageBins);
 
-            var groupedBins = collectionService.BuildStateInTimeCollections(otherWasteBins);
+            Console.WriteLine($"Grouped bin count (state of time): {garbageBins.Count}");
 
-            Console.WriteLine($"Grouped bin count (state of time): {otherWasteBins.Count}");
-
-            Console.WriteLine("State in time example: ");
-            Console.WriteLine(JsonSerializer.Serialize(groupedBins.FirstOrDefault()?.ToString()));
+            if (options.UseFileCache)
+            {
+                Console.WriteLine("Saving State in time to cache");
+                File.WriteAllText("Cache/garbage_bins.json", JsonSerializer.Serialize(groupedBins.ToList()));
+            }
         }
         catch (Exception ex)
         {

@@ -10,9 +10,9 @@ using Ymir.GeminiSync.Importer.Models;
 using Ymir.GeminiSync.Services;
 using Ymir.GeminiSync.Services.Abstract;
 
-var entityOption = new Option<string?>("--entity")
+var entityOption = new Option<string?>("--entities")
 {
-    Description = "The entity to import/sync/delete."
+    Description = "The entities to import/sync/delete."
 };
 
 var deleteOption = new Option<bool>("--delete")
@@ -25,9 +25,14 @@ var customerIdOption = new Option<int?>("--customer-id")
     Description = "Customer id to process."
 };
 
-var placeTypeDescriptionOption = new Option<string?>("--place-type-description")
+var placeTypeDescriptionOption = new Option<string>("--place-type-description")
 {
     Description = "Place type description to filter on."
+};
+
+var useFileCache = new Option<bool>("--use-file-cache")
+{
+    Description = "Flag whether to cache results for testing."
 };
 
 var rootCommand = CreateRootCommand();
@@ -63,6 +68,8 @@ await host.RunAsync();
 
 return Environment.ExitCode;
 
+
+
 RootCommand CreateRootCommand()
 {
     return new RootCommand("GeminiSync importer")
@@ -85,6 +92,7 @@ SyncOptions BuildImporterOptions(IConfiguration configuration, ParseResult parse
         Entities = parseResult.GetValue(entityOption) ?? configuredOptions.Entities,
         Delete = parseResult.GetValue(deleteOption) || configuredOptions.Delete,
         CustomerId = parseResult.GetValue(customerIdOption) ?? configuredOptions.CustomerId,
-        PlaceTypeDescription = parseResult.GetValue(placeTypeDescriptionOption) ?? configuredOptions.PlaceTypeDescription
+        PlaceTypeDescription = parseResult.GetValue(placeTypeDescriptionOption) ?? configuredOptions.PlaceTypeDescription,
+        UseFileCache = parseResult.GetValue(useFileCache) || configuredOptions.UseFileCache,
     };
 }
