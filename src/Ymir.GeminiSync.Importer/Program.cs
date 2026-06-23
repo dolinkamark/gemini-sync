@@ -68,8 +68,6 @@ await host.RunAsync();
 
 return Environment.ExitCode;
 
-
-
 RootCommand CreateRootCommand()
 {
     return new RootCommand("GeminiSync importer")
@@ -77,7 +75,8 @@ RootCommand CreateRootCommand()
         entityOption,
         deleteOption,
         customerIdOption,
-        placeTypeDescriptionOption
+        placeTypeDescriptionOption,
+        useFileCache
     };
 }
 

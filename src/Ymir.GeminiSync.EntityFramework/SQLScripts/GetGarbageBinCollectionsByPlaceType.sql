@@ -42,10 +42,6 @@ BEGIN
             ON al.CustomerId = mp.CustomerId
            AND al.PlaceNr = mp.PlaceNr
         WHERE al.Status <> 99
-          AND (
-                al.ToDate > @Now
-                OR al.ToDate = @OpenEndedToDate
-              )
           AND EXISTS
           (
               SELECT 1

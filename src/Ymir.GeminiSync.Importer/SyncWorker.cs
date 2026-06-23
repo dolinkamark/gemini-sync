@@ -26,6 +26,7 @@ public class SyncWorker(
 
             if(options.UseFileCache)
             {
+                Console.WriteLine("Saving garbage bins to cache");
                 File.WriteAllText("Cache/garbage_bins.json", JsonSerializer.Serialize(garbageBins));
             }
 

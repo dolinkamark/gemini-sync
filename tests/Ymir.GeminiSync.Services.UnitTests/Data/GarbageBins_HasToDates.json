@@ -1,0 +1,34 @@
+﻿[
+  {
+    "CustomerId": 271,
+    "AgreementLineId": 8202188,
+    "AgreementId": 43233,
+    "ExternalAgreementId": "60217",
+    "UnitId": "792",
+    "PlaceNr": 66213,
+    "Termin": null,
+    "FractionName": "Restavfall",
+    "ShortName": 120,
+    "HasLock": false,
+    "RegDate": "2012-02-19T19:54:47.633",
+    "FromDate": "2010-07-01T00:00:00",
+    "ToDate": "2024-06-11T12:39:58.643",
+    "LastChanged": "2024-06-11T12:39:58.853"
+  },
+  {
+    "CustomerId": 271,
+    "AgreementLineId": 8679790,
+    "AgreementId": 43233,
+    "ExternalAgreementId": "60217",
+    "UnitId": "917",
+    "PlaceNr": 66213,
+    "Termin": null,
+    "FractionName": "Restavfall",
+    "ShortName": 140,
+    "HasLock": false,
+    "RegDate": "2024-04-19T07:31:05.007",
+    "FromDate": "2024-06-11T12:39:58.643",
+    "ToDate": "1900-01-01T00:00:00",
+    "LastChanged": "2024-06-11T12:39:58.087"
+  }
+]
