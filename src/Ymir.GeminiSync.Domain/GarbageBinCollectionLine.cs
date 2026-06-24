@@ -7,6 +7,9 @@ public class GarbageBinCollectionLine
     public long? AgreementId { get; set; }
 
     public string ExternalAgreementId { get; set; }
+
+    public string BuildingType { get; set; }
+
     public string UnitId { get; set; }
 
     public int? PlaceNr { get; set; }

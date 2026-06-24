@@ -13,6 +13,7 @@ public class WasteManagementContext : DbContext
 
     public DbSet<Place> Places { get; set; }
     public DbSet<GarbageBinCollectionLine> GarbageBinCollections { get; set; }
+    public DbSet<AgreementConnectionLine> AgreementPlaceConnections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

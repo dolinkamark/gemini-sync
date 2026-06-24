@@ -13,7 +13,11 @@ public class ExcemptionType
 
     public int Status { get; set; }
 
+    //Defines if it is Fritak or not
+    //1 = Fritak -> complete exemption, don't send anything
+    //2 = Compost rebate
     public int? Category { get; set; }
 
+    //The Id for Gemini API
     public string ExternalId { get; set; }
 }

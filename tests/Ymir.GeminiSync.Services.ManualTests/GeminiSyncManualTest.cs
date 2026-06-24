@@ -64,7 +64,7 @@ public class GeminiSyncManualTest
     public async Task SyncGarbageBinGroups()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\20260622\\prod_2_garbage_bins_20260624.json";
+        const string filePath = "E:\\Temp\\Ymir\\20260622\\garbage_binsbuildinttype.json";
         var noEndDate = new DateTime(1900, 1, 1);
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
         var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
@@ -72,18 +72,33 @@ public class GeminiSyncManualTest
 
         //Act
         var filteredLines = collectionLines
-            .Where(l => l.ShortName < 3000 && l.PlaceNr != null)
+            .Where(l => l.ShortName < 1000 && l.PlaceNr != null)
+            .ToList();
+
+        //&& l.BuildingType != null && l.BuildingType.StartsWith("16")
+        var placesToUpdate = collectionLines
+            .Where(l => l.ShortName < 1000 && l.PlaceNr != null && l.BuildingType != null && l.BuildingType.StartsWith("16"))
+            .Select(l => l.PlaceNr)
             .ToList();
 
         var groupedByPlaces = filteredLines
             .GroupBy(x => (int)x.PlaceNr)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var orderedGroups = groupedByPlaces.OrderBy(g => g.Key);
-        var first1000 = orderedGroups.Take(100).ToList();
+        var orderedGroups = groupedByPlaces
+            .OrderBy(g => g.Key)
+            .ToList();
 
-        foreach (var place in orderedGroups)
+        int updatedCount = 0;
+
+        var groupsToRun = orderedGroups
+            .Skip(19999)
+            .ToList();
+
+        foreach (var place in groupsToRun)
         {
+            //if (!placesToUpdate.Contains(place.Key)) continue;
+
             var states = GeminiUtils.BuildAgreementIntervalsByDate(place.Value);
             var stateInTime = new GarbageBinsStateInTimeDto();
 
@@ -118,6 +133,10 @@ public class GeminiSyncManualTest
                 {
                     Console.WriteLine("Ooops, something went wrong");
                     errorCollection.Add((stateInTime.StateInTime.First().GarbageBinCollectionId, "Update failed"));
+                }
+                else
+                {
+                    updatedCount++;
                 }
             }
         }

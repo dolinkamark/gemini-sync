@@ -8,7 +8,7 @@
       ,ap.[UpdatedAt]
 FROM [dbo].[AgreementPlaceHistory] AS ap
 INNER JOIN [dbo].[Agreement] a ON a.AgreementId = ap.AgreementId AND a.GPSLSCustomerId = ap.CustomerId AND a.PASystem = ap.PASystem
-WHERE ap.CustomerId = 270
+WHERE ap.CustomerId = 2
   AND EXISTS (
         SELECT 1
         FROM dbo.Place_PlaceType AS ppt
@@ -17,5 +17,4 @@ WHERE ap.CustomerId = 270
            AND pt.CustomerId = ppt.CustomerId
         WHERE ppt.PlaceNr = ap.PlaceNr
           AND ppt.PASystem = ap.PASystem
-          AND pt.Description = 'Spann'
     )

@@ -4,17 +4,17 @@ public class AgreementConnectionLine
 {
     public int CustomerId { get; set; }
 
-    public int PlaceNr { get; set; }
-
     public int AgreementId { get; set; }
 
     public int ExternalAgreementId { get; set; }
 
-    public string AgreementType { get; set; }
+    public int PlaceNr { get; set; }
 
     public int? PlaceTypeId { get; set; }
 
     public string PlaceType { get; set; }
+
+    public string BuildingType { get; set; }
 
     public DateTime FromDate { get; set; }
 

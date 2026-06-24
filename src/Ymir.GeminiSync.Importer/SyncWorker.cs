@@ -9,6 +9,7 @@ namespace Ymir.GeminiSync.Importer;
 public class SyncWorker(
     ILogger<SyncWorker> logger,
     IOptions<SyncOptions> syncOptions,
+    IAgreementPlacesRepository agreementPlacesRepository,
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinCollectionService collectionService,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
@@ -36,10 +37,12 @@ public class SyncWorker(
 
             Console.WriteLine($"Grouped bin count (state of time): {garbageBins.Count}");
 
+            //Step 1.b) Verify if the utility connections are correct
+            var agreementPlaces = await agreementPlacesRepository.GetAgreementPlaceConnections(customerId);
             if (options.UseFileCache)
             {
-                Console.WriteLine("Saving State in time to cache");
-                File.WriteAllText("Cache/garbage_bins.json", JsonSerializer.Serialize(groupedBins.ToList()));
+                Console.WriteLine("Saving agreement places");
+                File.WriteAllText("Cache/agreement_places.json", JsonSerializer.Serialize(agreementPlaces));
             }
         }
         catch (Exception ex)
