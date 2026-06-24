@@ -5,10 +5,6 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Match this type to dbo.AgreementLine.ToDate exactly.
-    DECLARE @Now DATETIME = GETDATE();
-    DECLARE @OpenEndedToDate DATETIME = CONVERT(DATETIME, '19000101', 112);
-
     ;WITH MatchingPlaces AS
     (
         SELECT

@@ -50,14 +50,14 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 {
                     var collectionDto = new GarbageBinsCollectionDto
                     {
-                        GarbageBinCollectionId = place.Key,
+                        GarbageBinCollectionId = (int)place.Key,
                         NumberOfConnectedUtilityUnit = 1,
                         UtilityUnitType = GarbageBinUtilityUnitType.Housing,
                         GarbageBins = state.Lines.Select(l => new GarbageBinDto
                         {
                             GarbageBinId = (int)l.AgreementLineId,
                             GarbageBinCategory = GeminiUtils.ToGarbageBinCategory(l.FractionName),
-                            BinSize = l.ShortName,
+                            BinSize = l.ShortName ?? 0,
                             FrequencyToBeInvoiced = GarbageBinsFrequencyToBeInvoiced.BiWeekly,
                             IsLockable = l.HasLock,
                             IsCompactor = false

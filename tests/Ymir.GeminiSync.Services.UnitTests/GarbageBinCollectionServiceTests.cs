@@ -1,6 +1,4 @@
-﻿using Ymir.GeminiSync.Services.ManualTests;
-
-namespace Ymir.GeminiSync.Services.UnitTests;
+﻿namespace Ymir.GeminiSync.Services.UnitTests;
 
 public class GarbageBinCollectionServiceTests
 {
@@ -33,5 +31,20 @@ public class GarbageBinCollectionServiceTests
 
         //Assert
         Assert.Equal(2, states.Count);
+    }
+
+    [Fact]
+    public async Task BuildStateInTimeCollections_HasBigCollection()
+    {
+        //Arrange
+        const string filePath = "Data\\GarbageBins_271.json";
+        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var geminiServices = new GarbageBinCollectionService();
+
+        //Act
+        var states = geminiServices.BuildStateInTimeCollections(collectionLines);
+
+        //Assert
+        Assert.Fail("Unfinished test");
     }
 }

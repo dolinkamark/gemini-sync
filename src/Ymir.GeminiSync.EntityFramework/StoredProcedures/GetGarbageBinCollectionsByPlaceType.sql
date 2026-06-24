@@ -37,6 +37,7 @@ BEGIN
     INNER JOIN dbo.Fraction AS f
         ON f.CustomerId = uf.CustomerId
        AND f.FractionId = uf.FractionId
+       AND f.Name COLLATE Latin1_General_100_CI_AS LIKE N'%restavfall%'
     WHERE
         al.CustomerId = @CustomerId
         AND al.Status <> 99

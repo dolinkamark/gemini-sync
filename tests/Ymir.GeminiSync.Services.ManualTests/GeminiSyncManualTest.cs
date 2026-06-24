@@ -1,4 +1,5 @@
 ﻿using NSubstitute;
+using System.Text.Json;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Settings;
 
@@ -42,7 +43,7 @@ public class GeminiSyncManualTest
             {
                 try
                 {
-                    var result = await testGeminiClient.DeleteGarbageBinCollection(group.Key);
+                    var result = await testGeminiClient.DeleteGarbageBinCollection((int)group.Key);
                     if(!result)
                     {
                         Console.WriteLine("Something went wrong");
@@ -59,21 +60,29 @@ public class GeminiSyncManualTest
         Assert.Fail("Manual test only");
     }
 
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task SyncGarbageBinGroups()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\agreement_lines_271_20260511.json";
+        const string filePath = "E:\\Temp\\Ymir\\20260622\\prod_2_garbage_bins_20260624.json";
         var noEndDate = new DateTime(1900, 1, 1);
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
-        var collectionLine = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var errorCollection = new List<(int, string)>();
 
         //Act
-        var groupedByPlaces = collectionLine
-            .GroupBy(x => x.PlaceNr)
+        var filteredLines = collectionLines
+            .Where(l => l.ShortName < 3000 && l.PlaceNr != null)
+            .ToList();
+
+        var groupedByPlaces = filteredLines
+            .GroupBy(x => (int)x.PlaceNr)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        foreach (var place in groupedByPlaces)
+        var orderedGroups = groupedByPlaces.OrderBy(g => g.Key);
+        var first1000 = orderedGroups.Take(100).ToList();
+
+        foreach (var place in orderedGroups)
         {
             var states = GeminiUtils.BuildAgreementIntervalsByDate(place.Value);
             var stateInTime = new GarbageBinsStateInTimeDto();
@@ -89,7 +98,7 @@ public class GeminiSyncManualTest
                     {
                         GarbageBinId = (int)l.AgreementLineId,
                         GarbageBinCategory = GeminiUtils.ToGarbageBinCategory(l.FractionName),
-                        BinSize = l.ShortName,
+                        BinSize = l.ShortName ?? 0,
                         FrequencyToBeInvoiced = GarbageBinsFrequencyToBeInvoiced.BiWeekly,
                         IsLockable = l.HasLock,
                         IsCompactor = false
@@ -108,9 +117,13 @@ public class GeminiSyncManualTest
                 if (!isSuccessful)
                 {
                     Console.WriteLine("Ooops, something went wrong");
+                    errorCollection.Add((stateInTime.StateInTime.First().GarbageBinCollectionId, "Update failed"));
                 }
             }
         }
+
+        File.WriteAllText("error_report_20260624.json", JsonSerializer.Serialize(errorCollection));
+        Console.WriteLine("Ooops, something went wrong");
 
         //Assert
         Assert.Fail("Manual test only");

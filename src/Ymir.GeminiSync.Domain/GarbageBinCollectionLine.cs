@@ -8,13 +8,14 @@ public class GarbageBinCollectionLine
 
     public string ExternalAgreementId { get; set; }
     public string UnitId { get; set; }
-    public int PlaceNr { get; set; }
 
-    public int? Termin { get; set; }
+    public int? PlaceNr { get; set; }
+
+    public string Termin { get; set; }
 
     public string FractionName { get; set; }
 
-    public int ShortName { get; set; }
+    public int? ShortName { get; set; }
 
     public bool HasLock { get; set; }
 

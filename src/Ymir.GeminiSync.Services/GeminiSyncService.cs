@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using Ymir.GeminiSync.Domain.Repositories;
+﻿using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.Services.Abstract;
 
 namespace Ymir.GeminiSync.Services;
@@ -23,6 +22,6 @@ public class GeminiSyncService(
 
 
         //Step 4) Create report
-    }
 
+    }
 }
