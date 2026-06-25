@@ -6,9 +6,9 @@ namespace Ymir.GeminiSync.EntityFramework.Repositories;
 
 public class AgreementPlacesRepository(WasteManagementContext dbContext) : IAgreementPlacesRepository
 {
-  public Task<List<GarbageBinCollectionLine>> GetAgreementPlaceConnections(int customerId)
+  public Task<List<AgreementPlaceConnectionLine>> GetAgreementPlaceConnections(int customerId)
     {
-        return dbContext.GarbageBinCollections
+        return dbContext.AgreementPlaceConnections
             .FromSqlInterpolated(
                 $"EXEC dbo.GetAgreementPlaceConnections @CustomerId={customerId}")
             .AsNoTracking()

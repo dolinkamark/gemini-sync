@@ -11,7 +11,7 @@ public class SyncWorker(
     IOptions<SyncOptions> syncOptions,
     IAgreementPlacesRepository agreementPlacesRepository,
     IGarbageBinCollectionRepository garbageBinRepository,
-    IGarbageBinCollectionService collectionService,
+    IGarbageBinCollectionBuilder collectionService,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

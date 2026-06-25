@@ -8,7 +8,7 @@ public class GarbageBinCollectionServiceTests
         //Arrange
         const string filePath = "Data\\GarbageBins_SingleGeminiAgreement.json";
         var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
-        var geminiServices = new GarbageBinCollectionService();
+        var geminiServices = new GarbageBinCollectionBuilder();
 
         //Act
         var states = geminiServices.BuildStateInTimeCollections(collectionLines);
@@ -24,7 +24,7 @@ public class GarbageBinCollectionServiceTests
         //Arrange
         const string filePath = "Data\\GarbageBins_HasToDates.json";
         var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
-        var geminiServices = new GarbageBinCollectionService();
+        var geminiServices = new GarbageBinCollectionBuilder();
 
         //Act
         var states = geminiServices.BuildStateInTimeCollections(collectionLines);
@@ -39,7 +39,7 @@ public class GarbageBinCollectionServiceTests
         //Arrange
         const string filePath = "Data\\GarbageBins_271.json";
         var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
-        var geminiServices = new GarbageBinCollectionService();
+        var geminiServices = new GarbageBinCollectionBuilder();
 
         //Act
         var states = geminiServices.BuildStateInTimeCollections(collectionLines);

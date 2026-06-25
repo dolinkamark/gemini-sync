@@ -2,5 +2,5 @@
 
 public interface IAgreementPlacesRepository
 {
-    Task<List<GarbageBinCollectionLine>> GetAgreementPlaceConnections(int customerId);
+    Task<List<AgreementPlaceConnectionLine>> GetAgreementPlaceConnections(int customerId);
 }

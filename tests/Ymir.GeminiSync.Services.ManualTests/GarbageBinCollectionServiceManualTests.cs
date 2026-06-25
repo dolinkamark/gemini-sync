@@ -8,7 +8,7 @@ public class GarbageBinCollectionServiceManualTests
         //Arrange
         const string filePath = "E:\\Temp\\Ymir_sync\\GarbageBins_271.json";
         var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
-        var geminiServices = new GarbageBinCollectionService();
+        var geminiServices = new GarbageBinCollectionBuilder();
 
         //Act
         var states = geminiServices.BuildStateInTimeCollections(collectionLines);

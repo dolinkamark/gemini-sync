@@ -4,7 +4,7 @@ using Ymir.GeminiSync.Services.Models;
 
 namespace Ymir.GeminiSync.Services;
 
-public class GarbageBinCollectionService : IGarbageBinCollectionService
+public class GarbageBinCollectionBuilder : IGarbageBinCollectionBuilder
 {
     /// <summary>
     /// Builds a timeline of collection "states" where each state is defined by the set (and count)

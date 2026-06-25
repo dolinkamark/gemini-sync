@@ -13,13 +13,16 @@ public class WasteManagementContext : DbContext
 
     public DbSet<Place> Places { get; set; }
     public DbSet<GarbageBinCollectionLine> GarbageBinCollections { get; set; }
-    public DbSet<AgreementConnectionLine> AgreementPlaceConnections { get; set; }
+    public DbSet<AgreementPlaceConnectionLine> AgreementPlaceConnections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         modelBuilder.Entity<GarbageBinCollectionLine>()
+            .HasNoKey();
+
+        modelBuilder.Entity<AgreementPlaceConnectionLine>()
             .HasNoKey();
     }
 }

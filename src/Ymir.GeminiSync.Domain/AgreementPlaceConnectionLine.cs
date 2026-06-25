@@ -1,16 +1,17 @@
 ﻿namespace Ymir.GeminiSync.Domain;
 
-public class AgreementConnectionLine
+public class AgreementPlaceConnectionLine
 {
+
     public int CustomerId { get; set; }
 
-    public int AgreementId { get; set; }
+    public long AgreementId { get; set; }
 
-    public int ExternalAgreementId { get; set; }
+    public string ExternalAgreementId { get; set; }
 
     public int PlaceNr { get; set; }
 
-    public int? PlaceTypeId { get; set; }
+    public string PlaceTypeId { get; set; }
 
     public string PlaceType { get; set; }
 
@@ -22,5 +23,5 @@ public class AgreementConnectionLine
 
     public DateTime CreatedAt { get; set; }
 
-    public DateTime UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

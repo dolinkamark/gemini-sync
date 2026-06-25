@@ -25,7 +25,7 @@ namespace Ymir.GeminiSync.Services.UnitTests
             const string filePath = "Data\\Agreements_40004.json";
             var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
 
-            var garbageBinService = new GarbageBinCollectionService();
+            var garbageBinService = new GarbageBinCollectionBuilder();
             
             //Act
             var states = garbageBinService.BuildStateInTimeCollections(collectionLines);

@@ -3,7 +3,7 @@ using Ymir.GeminiSync.Services.Models;
 
 namespace Ymir.GeminiSync.Services.Abstract;
 
-public interface IGarbageBinCollectionService
+public interface IGarbageBinCollectionBuilder
 {
     List<StateInTimeCollection> BuildStateInTimeCollections(List<GarbageBinCollectionLine> lines);
 }
