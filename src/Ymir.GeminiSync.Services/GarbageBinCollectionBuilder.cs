@@ -103,28 +103,6 @@ public class GarbageBinCollectionBuilder : IGarbageBinCollectionBuilder
     }
 
 
-    private GarbageBinCategory ToGarbageBinCategory(string? category)
-    {
-        if (string.IsNullOrWhiteSpace(category))
-            return GarbageBinCategory.OtherWaste;
-
-        return category.Trim().ToLowerInvariant() switch
-        {
-            "bio" => GarbageBinCategory.Bio,
-            "mat/hage" => GarbageBinCategory.Bio,
-            "juletre" => GarbageBinCategory.Bio,
-
-            "papp/papir" => GarbageBinCategory.Paper,
-
-            "glass" => GarbageBinCategory.GlassAndMetal,
-
-            "restavfall" => GarbageBinCategory.OtherWaste,
-            "plast" => GarbageBinCategory.OtherWaste,
-
-            _ => GarbageBinCategory.OtherWaste
-        };
-    }
-
     private void ApplyEvent(
         List<GarbageBinCollectionLine> removes,
         List<GarbageBinCollectionLine> adds,
@@ -132,10 +110,14 @@ public class GarbageBinCollectionBuilder : IGarbageBinCollectionBuilder
     {
         // Remove first, then add (important when something ends and another starts same day)
         foreach (var r in removes)
+        {
             active.Remove(r.AgreementLineId);
+        }
 
         foreach (var a in adds)
+        {
             active[a.AgreementLineId] = a;
+        }
     }
 
     private DateTime? GetEndExclusiveDateOrNull(DateTime toDate)

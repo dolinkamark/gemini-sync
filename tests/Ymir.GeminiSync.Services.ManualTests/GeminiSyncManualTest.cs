@@ -69,6 +69,7 @@ public class GeminiSyncManualTest
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
         var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
         var errorCollection = new List<(int, string)>();
+        var garbageBinCollectionBuilder = new GarbageBinCollectionBuilder();
 
         //Act
         var filteredLines = collectionLines
@@ -97,9 +98,7 @@ public class GeminiSyncManualTest
 
         foreach (var place in groupsToRun)
         {
-            //if (!placesToUpdate.Contains(place.Key)) continue;
-
-            var states = GeminiUtils.BuildAgreementIntervalsByDate(place.Value);
+            var states = garbageBinCollectionBuilder.BuildStateInTimeCollections(place.Value);
             var stateInTime = new GarbageBinsStateInTimeDto();
 
             foreach (var state in states)
