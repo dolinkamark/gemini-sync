@@ -10,11 +10,15 @@ public class GarbageBinCollectionLine
 
     public string BuildingType { get; set; }
 
+    public int? NrOfOccupancyUnits { get; set; }
+
     public string UnitId { get; set; }
 
     public int? PlaceNr { get; set; }
 
     public string Termin { get; set; }
+
+    public int? Frequence { get; set; }
 
     public string FractionName { get; set; }
 
