@@ -6,5 +6,8 @@ public class PlaceAgreementInterval
     public DateTime FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public List<int> AgreementIds { get; set; } = new();
+
+    public List<int> GeminiAgreementIds { get; set; } = new();
+
+    public List<AgreementOccupancy> AgreementOccupancyList { get; set; } = new();
 }

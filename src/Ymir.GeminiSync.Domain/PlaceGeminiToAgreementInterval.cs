@@ -8,5 +8,5 @@ public class PlaceGeminiToAgreementInterval
     public DateTime UpdatedAt { get; set; }
 
     // One GeminiAgreementId (ExternalAgreementId) can map to multiple AgreementIds in the same interval
-    public Dictionary<int, List<int>> GeminiToAgreementIds { get; set; } = new();
+    public Dictionary<int, List<long>> GeminiToAgreementIds { get; set; } = new();
 }

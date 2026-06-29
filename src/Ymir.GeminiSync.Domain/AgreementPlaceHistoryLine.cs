@@ -6,9 +6,11 @@ public class AgreementPlaceHistoryLine
 
     public int PlaceNr { get; set; }
 
-    public int AgreementId { get; set; }
+    public long AgreementId { get; set; }
 
-    public int ExternalAgreementId { get; set; }
+    public string ExternalAgreementId { get; set; }
+
+    public int? NrOfOccupancyUnits { get; set; }
 
     public DateTime FromDate { get; set; }
 
