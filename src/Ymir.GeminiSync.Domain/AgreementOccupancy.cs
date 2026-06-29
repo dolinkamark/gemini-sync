@@ -6,5 +6,5 @@ public class AgreementOccupancy
 
     public int GeminiAgreementId { get; set; }
 
-    public int? NrOfOccupancyUnits { get; set; }
+    public int NrOfOccupancyUnits { get; set; }
 }

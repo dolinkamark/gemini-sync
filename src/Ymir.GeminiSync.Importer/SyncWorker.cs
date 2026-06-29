@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.Importer.Models;
 using Ymir.GeminiSync.Services.Abstract;
@@ -20,29 +21,60 @@ public class SyncWorker(
         {
             var options = syncOptions.Value;
             var customerId = options.CustomerId;
-            var placeTypeDescription = options.PlaceTypeDescription;
+            var placeTypes = options.PlaceTypes;
+            var cacheFolder = "Cache";
 
             //Step 1) Verify if the collections are correct
-            var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypeDescription);
-
             if(options.UseFileCache)
             {
-                Console.WriteLine("Saving garbage bins to cache");
-                File.WriteAllText("Cache/garbage_bins.json", JsonSerializer.Serialize(garbageBins));
+                if(!Directory.Exists(cacheFolder))
+                {
+                    Directory.CreateDirectory(cacheFolder);
+                }
             }
 
-            Console.WriteLine($"Total bins returned: {garbageBins.Count}");
-
-            var groupedBins = collectionService.BuildStateInTimeCollections(garbageBins);
-
-            Console.WriteLine($"Grouped bin count (state of time): {garbageBins.Count}");
-
-            //Step 1.b) Verify if the utility connections are correct
-            var agreementPlaces = await agreementPlacesRepository.GetAgreementPlaceConnections(customerId);
-            if (options.UseFileCache)
+            if(options.Entities.Contains(EntityTypes.GarbageBins))
             {
-                Console.WriteLine("Saving agreement places");
-                File.WriteAllText("Cache/agreement_places.json", JsonSerializer.Serialize(agreementPlaces));
+                var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypes);
+
+                if (options.UseFileCache)
+                {
+                    Console.WriteLine("Saving garbage bins to cache");
+                    File.WriteAllText("Cache/garbage_bins.json", JsonSerializer.Serialize(garbageBins));
+                }
+
+                Console.WriteLine($"Total bins returned: {garbageBins.Count}");
+
+                var groupedBins = collectionService.BuildStateInTimeCollections(garbageBins);
+
+                Console.WriteLine($"Grouped bin count (state of time): {garbageBins.Count}");
+            }
+
+            if (options.Entities.Contains(EntityTypes.Fractions))
+            {
+                var agreementPlaces = await agreementPlacesRepository.GetAgreementPlaceHistory(customerId, placeTypes);
+
+                if (options.UseFileCache)
+                {
+                    Console.WriteLine("Saving agreement history lines to cache");
+                    File.WriteAllText(
+                        $"Cache/agreement_place_history_lines_{placeTypes}_{DateTime.Now.ToString("yyyyMMdd")}.json",
+                        JsonSerializer.Serialize(agreementPlaces)
+                    );
+                }
+
+                Console.WriteLine($"Total agreement history lines returned for place type {placeTypes}: {agreementPlaces.Count}");
+            }
+
+            if (options.Entities.Contains(EntityTypes.UtilityConnections))
+            {
+                //Step 1.b) Verify if the utility connections are correct
+                var agreementPlaces = await agreementPlacesRepository.GetAgreementPlaceConnections(customerId);
+                if (options.UseFileCache)
+                {
+                    Console.WriteLine("Saving agreement places");
+                    File.WriteAllText("Cache/agreement_places.json", JsonSerializer.Serialize(agreementPlaces));
+                }
             }
         }
         catch (Exception ex)

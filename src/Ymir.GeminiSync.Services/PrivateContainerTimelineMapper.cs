@@ -12,7 +12,7 @@ public static class PrivateContainerTimelineMapper
             return new List<PrivateContainerGroupAgreementFractions>();
 
         // Accumulate per agreement
-        var byAgreement = new Dictionary<int, List<PrivateContainerGroupFractionInTime>>();
+        var byAgreement = new Dictionary<long, List<PrivateContainerGroupFractionInTime>>();
 
         foreach (var interval in intervals)
         {
@@ -21,7 +21,7 @@ public static class PrivateContainerTimelineMapper
 
             // Collect all DISTINCT AgreementIds that are active in this interval (across all Gemini ids)
             var activeAgreementIds = interval.GeminiToAgreementIds
-                .SelectMany(kv => kv.Value ?? Enumerable.Empty<int>())
+                .SelectMany(kv => kv.Value ?? Enumerable.Empty<long>())
                 .Distinct()
                 .OrderBy(id => id)
                 .ToList();

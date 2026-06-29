@@ -2,7 +2,7 @@
 
 public class PrivateContainerGroupAgreementFractions
 {
-    public int AgreementId { get; set; }
+    public long AgreementId { get; set; }
 
     public List<PrivateContainerGroupFractionInTime> FractionsInTime { get; set; } = new();
 }

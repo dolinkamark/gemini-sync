@@ -2,7 +2,7 @@
 {
     public class AgreementFractionTimeline
     {
-        public int AgreementId { get; set; }
+        public long AgreementId { get; set; }
 
         public List<FractionTimeEntry> FractionsInTime { get; set; } = new();
     }

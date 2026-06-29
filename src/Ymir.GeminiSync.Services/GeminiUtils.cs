@@ -90,6 +90,17 @@ namespace Ymir.GeminiSync.Services.ManualTests
                         .OrderBy(id => id)
                         .ToList();
 
+                    var agreementOccupancyList = activeLines
+                        .Select(l => new AgreementOccupancy
+                        {
+                            AgreementId = l.AgreementId,
+                            GeminiAgreementId = Int32.Parse(l.ExternalAgreementId),
+                            NrOfOccupancyUnits = l.NrOfOccupancyUnits ?? 1,
+                        })
+                        .Distinct()
+                        .OrderBy(l => l.GeminiAgreementId)
+                        .ToList();
+
                     var intervalUpdatedAt = activeLines
                     .Max(l => l.UpdatedAt > l.FromDate
                               ? l.UpdatedAt
@@ -101,7 +112,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                     {
                         var prev = result[^1];
                         if (prev.PlaceNr == placeNr &&
-                            SameAgreements(prev.AgreementIds, activeAgreementIds) &&
+                            SameAgreements(prev.AgreementOccupancyList.Select(i => i.GeminiAgreementId).ToList(), activeAgreementIds) &&
                             prev.ToDate.HasValue &&
                             prev.ToDate.Value.AddDays(1) == intervalStart)
                         {
@@ -117,8 +128,8 @@ namespace Ymir.GeminiSync.Services.ManualTests
                         PlaceNr = placeNr,
                         FromDate = intervalStart,
                         ToDate = intervalEnd,
-                        AgreementIds = geminiAgreementIds,
-                        UpdatedAt = intervalUpdatedAt
+                        UpdatedAt = intervalUpdatedAt,
+                        AgreementOccupancyList = agreementOccupancyList,
                     });
                 }
             }
@@ -185,7 +196,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
                     // Build mapping: ExternalAgreementId (Gemini) -> distinct AgreementIds
                     var geminiToAgreement = activeLines
-                        .GroupBy(l => l.ExternalAgreementId)
+                        .GroupBy(l => Int32.Parse(l.ExternalAgreementId))
                         .OrderBy(g => g.Key)
                         .ToDictionary(
                             g => g.Key,
@@ -226,8 +237,8 @@ namespace Ymir.GeminiSync.Services.ManualTests
         }
 
         private static bool SameGeminiMapping(
-            Dictionary<int, List<int>> a,
-            Dictionary<int, List<int>> b)
+            Dictionary<int, List<long>> a,
+            Dictionary<int, List<long>> b)
         {
             if (ReferenceEquals(a, b)) return true;
             if (a == null || b == null) return false;
@@ -238,8 +249,8 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 if (!b.TryGetValue(kv.Key, out var bList))
                     return false;
 
-                var aList = kv.Value ?? new List<int>();
-                bList ??= new List<int>();
+                var aList = kv.Value ?? new List<long>();
+                bList ??= new List<long>();
 
                 if (aList.Count != bList.Count)
                     return false;
@@ -259,7 +270,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             var fractionInTimeList = intervals
                 .Select(interval =>
                 {
-                    var denominator = interval.AgreementIds.Count;
+                    var denominator = interval.AgreementOccupancyList.Sum(o => o.NrOfOccupancyUnits);
 
                     return new FractionInTime
                     {
@@ -269,11 +280,11 @@ namespace Ymir.GeminiSync.Services.ManualTests
                                     : (DateTimeOffset?)null,
                         ModifiedAt = new DateTimeOffset(interval.UpdatedAt),
 
-                        Agreements = interval.AgreementIds
-                            .Select((agreementId, index) => new FractionAgreement
+                        Agreements = interval.AgreementOccupancyList
+                            .Select(occupancy => new FractionAgreement
                             {
-                                AgreementId = agreementId,
-                                FractionNumerator = 1,
+                                AgreementId = occupancy.GeminiAgreementId,
+                                FractionNumerator = occupancy.NrOfOccupancyUnits,
                                 FractionDenominator = denominator
                             })
                             .ToList()
@@ -645,7 +656,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             return GarbageBinCategory.OtherWaste;
         }
 
-        private static bool SameAgreements(List<int> a, List<int> b)
+        private static bool SameAgreements(List<int> a, List<long> b)
         {
             if (a.Count != b.Count) return false;
 

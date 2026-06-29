@@ -25,9 +25,9 @@ var customerIdOption = new Option<int?>("--customer-id")
     Description = "Customer id to process."
 };
 
-var placeTypeDescriptionOption = new Option<string>("--place-type-description")
+var placeTypesOption = new Option<string>("--place-types")
 {
-    Description = "Place type description to filter on."
+    Description = "Place types to filter on."
 };
 
 var useFileCache = new Option<bool>("--use-file-cache")
@@ -76,7 +76,7 @@ RootCommand CreateRootCommand()
         entityOption,
         deleteOption,
         customerIdOption,
-        placeTypeDescriptionOption,
+        placeTypesOption,
         useFileCache
     };
 }
@@ -92,7 +92,7 @@ SyncOptions BuildImporterOptions(IConfiguration configuration, ParseResult parse
         Entities = parseResult.GetValue(entityOption) ?? configuredOptions.Entities,
         Delete = parseResult.GetValue(deleteOption) || configuredOptions.Delete,
         CustomerId = parseResult.GetValue(customerIdOption) ?? configuredOptions.CustomerId,
-        PlaceTypeDescription = parseResult.GetValue(placeTypeDescriptionOption) ?? configuredOptions.PlaceTypeDescription,
+        PlaceTypes = parseResult.GetValue(placeTypesOption) ?? configuredOptions.PlaceTypes,
         UseFileCache = parseResult.GetValue(useFileCache) || configuredOptions.UseFileCache,
     };
 }

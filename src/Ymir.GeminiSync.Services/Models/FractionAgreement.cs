@@ -2,7 +2,7 @@
 
 public class FractionAgreement
 {
-    public int AgreementId { get; set; }
+    public long AgreementId { get; set; }
 
     public int FractionNumerator { get; set; }
 

@@ -86,14 +86,18 @@ namespace Ymir.GeminiSync.Services.ManualTests
             Assert.Fail("Manual test only");
         }
 
-        [Fact(Skip = "Manual test only")]
+        [Fact]
         public async Task UpdateFractionsInTime()
         {
             //Arrange
-            const string filePath = "E:\\Temp\\Ymir\\agreement_places_271_20260521.json";
+            const string filePath = "E:\\Temp\\Ymir\\20260629\\agreement_place_history_lines_Spann_20260629.json";
 
             DateTime minDate = new DateTime(1900, 1, 1);
             var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
+            placeLines = placeLines
+                .Where(p => !String.IsNullOrWhiteSpace(p.ExternalAgreementId))
+                .ToList();
+
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
             //Act
@@ -103,32 +107,48 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 .GroupBy(i => i.PlaceNr)
                 .ToList();
 
+            var partialGroups = intervalGroups
+                .Skip(1000)
+                .Take(5000)
+                .ToList();
+
             var processed = 0;
+            var errorLines = new List<(int, string)>();
 
-            foreach (var intervalGroup in intervalGroups)
+            foreach (var intervalGroup in partialGroups)
             {
-                var currentIntervals = intervalGroup.ToList();
-                var fractions = GeminiUtils.ToFractionsInTime(currentIntervals);
-                fractions.ForEach(f =>
-                {
-                    f.DateFrom = f.DateFrom.AddHours(12);
+                //if (intervalGroup.Key != 272) continue;
 
-                    if (f.DateTo != null)
+                try
+                {
+                    var currentIntervals = intervalGroup.ToList();
+                    var fractions = GeminiUtils.ToFractionsInTime(currentIntervals);
+                    fractions.ForEach(f =>
                     {
-                        f.DateTo = f.DateTo.Value.AddHours(12);
+                        f.DateFrom = f.DateFrom.AddHours(12);
+
+                        if (f.DateTo != null)
+                        {
+                            f.DateTo = f.DateTo.Value.AddHours(12);
+                        }
+                    });
+
+                    var timelines = GeminiUtils.ToFractionTimelines(fractions);
+
+                    var isSuccessful = await testGeminiClient.UpdateFractionsInTime(intervalGroup.Key, timelines);
+                    if (!isSuccessful)
+                    {
+                        Console.WriteLine("Whoops " + intervalGroup.Key);
+                        errorLines.Add((intervalGroup.Key, "Gemini client call failed"));
                     }
-                });
-
-                var timelines = GeminiUtils.ToFractionTimelines(fractions);
-
-                var isSuccessful = await testGeminiClient.UpdateFractionsInTime(intervalGroup.Key, timelines);
-                if (!isSuccessful)
-                {
-                    Console.WriteLine("Whoops " + intervalGroup.Key);
+                    else
+                    {
+                        processed++;
+                    }
                 }
-                else
+                catch(Exception ex)
                 {
-                    processed++;
+                    errorLines.Add((intervalGroup.Key, ex.ToString()));
                 }
             }
 
@@ -175,7 +195,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             Assert.Fail("Manual test only");
         }
 
-        [Fact(Skip = "Manual test only")]
+        [Fact]
         public async Task UptadeUtilityConnections()
         {
             //Arrange
@@ -190,12 +210,16 @@ namespace Ymir.GeminiSync.Services.ManualTests
             DateTime minDate = new DateTime(1900, 1, 1);
             var connectionLines = await FileUtils.ReadAgreementConnectionLines(filePath);
 
+            //var agreementGroups = connectionLines
+            //    .Where(l => !String.IsNullOrWhiteSpace(l.ExternalAgreementId))
+            //    .GroupBy(l => l.AgreementId);
+
             var agreementGroups = connectionLines
-                .Where(l => !String.IsNullOrWhiteSpace(l.ExternalAgreementId))
-                .GroupBy(l => l.AgreementId);
+               .Where(l => l.ExternalAgreementId == "61612")
+               .GroupBy(l => l.AgreementId);
 
             var partialGroupList = agreementGroups
-                .Skip(28500)
+                //.Skip(28500)
                 .ToList();
 
             foreach (var agreementGroup in partialGroupList)
