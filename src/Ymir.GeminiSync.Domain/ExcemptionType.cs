@@ -4,6 +4,7 @@ namespace Ymir.GeminiSync.Domain;
 
 public class ExcemptionType
 {
+    [Key]
     public int Id { get; set; }
 
     public int CustomerId { get; set; }

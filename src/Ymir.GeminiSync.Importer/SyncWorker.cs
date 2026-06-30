@@ -11,6 +11,7 @@ public class SyncWorker(
     ILogger<SyncWorker> logger,
     IOptions<SyncOptions> syncOptions,
     IAgreementPlacesRepository agreementPlacesRepository,
+    IAgreementExcemptionRepository agreementExcemptionRepository,
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinCollectionBuilder collectionService,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
@@ -81,7 +82,15 @@ public class SyncWorker(
                 if (options.UseFileCache)
                 {
                     Console.WriteLine("Saving agreement places");
-                    File.WriteAllText("Cache/agreement_places.json", JsonSerializer.Serialize(agreementPlaces));
+                    File.WriteAllText($"Cache/agreement_places_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(agreementPlaces));
+                }
+
+                //Verify download exemptions
+                var exemptions = await agreementExcemptionRepository.GetAllAgreementExcemptions(customerId);
+                if (options.UseFileCache)
+                {
+                    Console.WriteLine("Saving agreement exemptions");
+                    File.WriteAllText($"Cache/agreement_exemptions_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(exemptions));
                 }
             }
         }

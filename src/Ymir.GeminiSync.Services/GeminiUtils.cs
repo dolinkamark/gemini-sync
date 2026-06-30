@@ -90,12 +90,21 @@ namespace Ymir.GeminiSync.Services.ManualTests
                         .OrderBy(id => id)
                         .ToList();
 
+                    //Adjust Occupancy units
+                    foreach(var activeLine in activeLines)
+                    {
+                        if(activeLine.NrOfOccupancyUnits == null || activeLine.NrOfOccupancyUnits == 0)
+                        {
+                            activeLine.NrOfOccupancyUnits = 1;
+                        }
+                    }
+
                     var agreementOccupancyList = activeLines
                         .Select(l => new AgreementOccupancy
                         {
                             AgreementId = l.AgreementId,
                             GeminiAgreementId = Int32.Parse(l.ExternalAgreementId),
-                            NrOfOccupancyUnits = l.NrOfOccupancyUnits ?? 1,
+                            NrOfOccupancyUnits = (l.NrOfOccupancyUnits ?? 1),
                         })
                         .Distinct()
                         .OrderBy(l => l.GeminiAgreementId)
@@ -267,30 +276,30 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
         public static List<FractionInTime> ToFractionsInTime(List<PlaceAgreementInterval> intervals)
         {
-            var fractionInTimeList = intervals
-                .Select(interval =>
+            var fractionInTimeList = new List<FractionInTime>();
+
+            foreach(var interval in intervals)
+            {
+                var denominator = interval.AgreementOccupancyList.Sum(o => o.NrOfOccupancyUnits);
+
+                fractionInTimeList.Add(new FractionInTime
                 {
-                    var denominator = interval.AgreementOccupancyList.Sum(o => o.NrOfOccupancyUnits);
+                    DateFrom = new DateTimeOffset(interval.FromDate),
+                    DateTo = interval.ToDate.HasValue
+                                ? new DateTimeOffset(interval.ToDate.Value)
+                                : (DateTimeOffset?)null,
+                    ModifiedAt = new DateTimeOffset(interval.UpdatedAt),
 
-                    return new FractionInTime
-                    {
-                        DateFrom = new DateTimeOffset(interval.FromDate),
-                        DateTo = interval.ToDate.HasValue
-                                    ? new DateTimeOffset(interval.ToDate.Value)
-                                    : (DateTimeOffset?)null,
-                        ModifiedAt = new DateTimeOffset(interval.UpdatedAt),
-
-                        Agreements = interval.AgreementOccupancyList
-                            .Select(occupancy => new FractionAgreement
-                            {
-                                AgreementId = occupancy.GeminiAgreementId,
-                                FractionNumerator = occupancy.NrOfOccupancyUnits,
-                                FractionDenominator = denominator
-                            })
-                            .ToList()
-                    };
-                })
-                .ToList();
+                    Agreements = interval.AgreementOccupancyList
+                        .Select(occupancy => new FractionAgreement
+                        {
+                            AgreementId = occupancy.GeminiAgreementId,
+                            FractionNumerator = occupancy.NrOfOccupancyUnits,
+                            FractionDenominator = denominator
+                        })
+                        .ToList()
+                });
+            }
 
             return fractionInTimeList;
         }

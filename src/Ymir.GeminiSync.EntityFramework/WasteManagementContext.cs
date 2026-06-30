@@ -12,6 +12,9 @@ public class WasteManagementContext : DbContext
     }
 
     public DbSet<Place> Places { get; set; }
+
+    public DbSet<AgreementExcemption> AgreementExcemptions { get; set; }
+
     public DbSet<GarbageBinCollectionLine> GarbageBinCollections { get; set; }
     public DbSet<AgreementPlaceConnectionLine> AgreementPlaceConnections { get; set; }
     public DbSet<AgreementPlaceHistoryLine> AgreementPlaceHistoryLines { get; set; }

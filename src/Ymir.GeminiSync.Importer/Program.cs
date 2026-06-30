@@ -60,6 +60,7 @@ builder.Services.AddDbContext<WasteManagementContext>(options =>
 builder.Services.AddSingleton(Options.Create(importerOptions));
 
 builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();
+builder.Services.AddTransient<IAgreementExcemptionRepository, AgreementExcemptionRepository>();
 builder.Services.AddTransient<IAgreementPlacesRepository, AgreementPlacesRepository>();
 builder.Services.AddTransient<IGarbageBinCollectionBuilder, GarbageBinCollectionBuilder>();
 builder.Services.AddHostedService<SyncWorker>();
