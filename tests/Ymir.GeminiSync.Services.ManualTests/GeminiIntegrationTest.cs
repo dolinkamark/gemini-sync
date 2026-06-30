@@ -1,4 +1,5 @@
 ﻿using NSubstitute;
+using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Models.Containers;
 using Ymir.GeminiSync.Services.Settings;
@@ -30,7 +31,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             const string filePath = "E:\\Temp\\Ymir\\agreement_lines_20260312.json";
             var noEndDate = new DateTime(1900, 1, 1);
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
-            var collectionLine = await FileUtils.ReadGarbageBinListAsync(filePath);
+            var collectionLine = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
             var garbageBinCollectionBuilder = new GarbageBinCollectionBuilder();
 
             //Act
@@ -92,7 +93,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             const string filePath = "E:\\Temp\\Ymir\\private_container_agreements_to_places.json";
 
             DateTime minDate = new DateTime(1900, 1, 1);
-            var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
+            var placeLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(filePath);
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
             //Act

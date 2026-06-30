@@ -1,4 +1,5 @@
 ﻿using NSubstitute;
+using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services.ManualTests;
@@ -21,14 +22,14 @@ public class FractionsInTimeManualTests
             .Returns(_ => new HttpClient());
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task UpdateFractionsInTime()
     {
         //Arrange
         const string filePath = "E:\\Temp\\Ymir\\20260629\\agreement_place_history_lines_Spann_20260629.json";
 
         DateTime minDate = new DateTime(1900, 1, 1);
-        var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
+        var placeLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(filePath);
         placeLines = placeLines
             .Where(p => !String.IsNullOrWhiteSpace(p.ExternalAgreementId))
             .ToList();

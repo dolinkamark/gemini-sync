@@ -1,5 +1,6 @@
 ﻿using NSubstitute;
 using System.Text.Json;
+using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Settings;
 
@@ -30,7 +31,7 @@ public class GarbageBinSyncManualTest
         const string filePath = "E:\\Temp\\Ymir\\20260629\\garbage_bins_Spann_20260629.json";
         var noEndDate = new DateTime(1900, 1, 1);
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
-        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var errorCollection = new List<(int, string)>();
         var garbageBinCollectionBuilder = new GarbageBinCollectionBuilder();
 
@@ -119,7 +120,7 @@ public class GarbageBinSyncManualTest
         const string filePath = "E:\\Temp\\Ymir\\20260629\\garbage_bins_Sekk i spann_20260630.json";
         var noEndDate = new DateTime(1900, 1, 1);
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
-        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var errorCollection = new List<(int, string)>();
         var garbageBinCollectionBuilder = new GarbageBinCollectionBuilder();
 

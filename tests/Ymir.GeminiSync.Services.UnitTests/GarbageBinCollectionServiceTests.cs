@@ -1,4 +1,6 @@
-﻿namespace Ymir.GeminiSync.Services.UnitTests;
+﻿using Ymir.GeminiSync.Domain;
+
+namespace Ymir.GeminiSync.Services.UnitTests;
 
 public class GarbageBinCollectionServiceTests
 {
@@ -7,7 +9,7 @@ public class GarbageBinCollectionServiceTests
     {
         //Arrange
         const string filePath = "Data\\GarbageBins_SingleGeminiAgreement.json";
-        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var geminiServices = new GarbageBinCollectionBuilder();
 
         //Act
@@ -23,7 +25,7 @@ public class GarbageBinCollectionServiceTests
     {
         //Arrange
         const string filePath = "Data\\GarbageBins_HasToDates.json";
-        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var geminiServices = new GarbageBinCollectionBuilder();
 
         //Act
@@ -38,7 +40,7 @@ public class GarbageBinCollectionServiceTests
     {
         //Arrange
         const string filePath = "Data\\GarbageBins_271.json";
-        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var geminiServices = new GarbageBinCollectionBuilder();
 
         //Act

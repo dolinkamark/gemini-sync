@@ -1,4 +1,5 @@
 ﻿using NSubstitute;
+using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services.ManualTests;
@@ -30,7 +31,7 @@ public class GeminiDeleteManualTests
         const string filePath = "E:\\Temp\\Ymir\\20260622\\garbage_bins_20260623.json";
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
-        var collectionLines = await FileUtils.ReadGarbageBinListAsync(filePath);
+        var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
 
         //Act
         var placeNumbers = collectionLines
