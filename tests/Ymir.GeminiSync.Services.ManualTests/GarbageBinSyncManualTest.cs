@@ -170,7 +170,7 @@ public class GarbageBinSyncManualTest
                         FrequencyToBeInvoiced = GeminiUtils.MapGarbageBinFrequency(l.Frequence),
                         IsLockable = l.HasLock,
                         IsCompactor = false,
-                        isPlasticBag = true
+                        IsPlasticBag = true
                     }).ToList(),
                     InEffectFrom = state.StartDate,
                     InEffectTo = state.EndDate,

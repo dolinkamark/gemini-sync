@@ -85,76 +85,6 @@ namespace Ymir.GeminiSync.Services.ManualTests
             Assert.Fail("Manual test only");
         }
 
-        [Fact]
-        public async Task UpdateFractionsInTime()
-        {
-            //Arrange
-            const string filePath = "E:\\Temp\\Ymir\\20260629\\agreement_place_history_lines_Spann_20260629.json";
-
-            DateTime minDate = new DateTime(1900, 1, 1);
-            var placeLines = await FileUtils.ReadAgreementPlaceHistoryLines(filePath);
-            placeLines = placeLines
-                .Where(p => !String.IsNullOrWhiteSpace(p.ExternalAgreementId))
-                .ToList();
-
-            var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
-
-            //Act
-            var intervals = GeminiUtils.BuildIntervalsByDate(placeLines);
-
-            var intervalGroups = intervals
-                .GroupBy(i => i.PlaceNr)
-                .ToList();
-
-            var partialGroups = intervalGroups
-                .Skip(1000)
-                .Take(5000)
-                .ToList();
-
-            var processed = 0;
-            var errorLines = new List<(int, string)>();
-
-            foreach (var intervalGroup in partialGroups)
-            {
-                //if (intervalGroup.Key != 272) continue;
-
-                try
-                {
-                    var currentIntervals = intervalGroup.ToList();
-                    var fractions = GeminiUtils.ToFractionsInTime(currentIntervals);
-                    fractions.ForEach(f =>
-                    {
-                        f.DateFrom = f.DateFrom.AddHours(12);
-
-                        if (f.DateTo != null)
-                        {
-                            f.DateTo = f.DateTo.Value.AddHours(12);
-                        }
-                    });
-
-                    var timelines = GeminiUtils.ToFractionTimelines(fractions);
-
-                    var isSuccessful = await testGeminiClient.UpdateFractionsInTime(intervalGroup.Key, timelines);
-                    if (!isSuccessful)
-                    {
-                        Console.WriteLine("Whoops " + intervalGroup.Key);
-                        errorLines.Add((intervalGroup.Key, "Gemini client call failed"));
-                    }
-                    else
-                    {
-                        processed++;
-                    }
-                }
-                catch(Exception ex)
-                {
-                    errorLines.Add((intervalGroup.Key, ex.ToString()));
-                }
-            }
-
-            //Assert
-            Assert.Fail("Manual test only");
-        }
-
         [Fact(Skip = "Manual test only")]
         public async Task UpdatePrivateContainerFractionsInTime()
         {
@@ -329,12 +259,5 @@ namespace Ymir.GeminiSync.Services.ManualTests
             //Assert
             Assert.Fail("Manual test only");
         }
-
-
-        public async Task ResetGarbageBinCollections()
-        {
-
-        }
-
     }
 }

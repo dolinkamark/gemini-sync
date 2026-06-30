@@ -23,7 +23,7 @@ public class GeminiDeleteManualTests
             .Returns(_testHttpClient);
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task DeleteGarbageBinCollections()
     {
         //Arrange

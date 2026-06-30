@@ -2,7 +2,7 @@
 
 public class GarbageBinCollectionServiceManualTests
 {
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task BuildStateInTimeCollections_HasBigCollection()
     {
         //Arrange

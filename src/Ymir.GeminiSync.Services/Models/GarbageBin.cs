@@ -17,4 +17,6 @@ public class GarbageBinDto
     public bool IsLockable { get; set; }
 
     public bool IsCompactor { get; set; }
+
+    public bool IsPlasticBag { get; set; }
 }
