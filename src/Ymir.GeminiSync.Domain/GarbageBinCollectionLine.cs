@@ -8,6 +8,8 @@ public class GarbageBinCollectionLine
 
     public string ExternalAgreementId { get; set; }
 
+    public string Bid { get; set; }
+
     public string BuildingType { get; set; }
 
     public int? NrOfOccupancyUnits { get; set; }

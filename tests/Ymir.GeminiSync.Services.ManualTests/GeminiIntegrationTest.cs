@@ -214,14 +214,10 @@ namespace Ymir.GeminiSync.Services.ManualTests
             //    .GroupBy(l => l.AgreementId);
 
             var agreementGroups = connectionLines
-               .Where(l => l.ExternalAgreementId == "61612")
-               .GroupBy(l => l.AgreementId);
+               .GroupBy(l => l.AgreementId)
+               .ToList();
 
-            var partialGroupList = agreementGroups
-                //.Skip(28500)
-                .ToList();
-
-            foreach (var agreementGroup in partialGroupList)
+            foreach (var agreementGroup in agreementGroups)
             {
                 var timelines = new List<ConnectionTimelineDto>();
                 var currentLines = agreementGroup

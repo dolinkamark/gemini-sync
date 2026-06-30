@@ -35,19 +35,27 @@ public class SyncWorker(
 
             if(options.Entities.Contains(EntityTypes.GarbageBins))
             {
-                var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypes);
+                var placeTypeList = placeTypes.Split(",");
 
-                if (options.UseFileCache)
+                foreach(var placeType in placeTypeList)
                 {
-                    Console.WriteLine("Saving garbage bins to cache");
-                    File.WriteAllText("Cache/garbage_bins.json", JsonSerializer.Serialize(garbageBins));
+                    var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeType);
+
+                    if (options.UseFileCache)
+                    {
+                        Console.WriteLine("Saving garbage bins to cache");
+                        File.WriteAllText(
+                            $"Cache/garbage_bins_{placeType}_{DateTime.Now.ToString("yyyyMMdd")}.json",
+                            JsonSerializer.Serialize(garbageBins)
+                        );
+                    }
+
+                    Console.WriteLine($"Total bins returned for type {placeType}: {garbageBins.Count}");
+
+                    var groupedBins = collectionService.BuildStateInTimeCollections(garbageBins);
+
+                    Console.WriteLine($"Grouped bin count for type {placeType} (state of time): {garbageBins.Count}");
                 }
-
-                Console.WriteLine($"Total bins returned: {garbageBins.Count}");
-
-                var groupedBins = collectionService.BuildStateInTimeCollections(garbageBins);
-
-                Console.WriteLine($"Grouped bin count (state of time): {garbageBins.Count}");
             }
 
             if (options.Entities.Contains(EntityTypes.Fractions))

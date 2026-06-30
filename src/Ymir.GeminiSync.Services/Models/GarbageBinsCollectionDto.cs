@@ -6,6 +6,7 @@ public class GarbageBinsCollectionDto
 {
     public int GarbageBinCollectionId { get; set; }
 
+    // Deprecated - Info is sent through utility units
     public int NumberOfConnectedUtilityUnit { get; set; }
 
     public List<GarbageBinDto> GarbageBins { get; set; } = new();

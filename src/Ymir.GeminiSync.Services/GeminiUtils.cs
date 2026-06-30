@@ -537,6 +537,20 @@ namespace Ymir.GeminiSync.Services.ManualTests
             return GarbageBinCategory.OtherWaste;
         }
 
+        public static GarbageBinsFrequencyToBeInvoiced MapGarbageBinFrequency(int? frequency)
+        {
+            switch (frequency)
+            {
+                case 2: return GarbageBinsFrequencyToBeInvoiced.Weekly;
+                case 1:
+                default:
+                    return GarbageBinsFrequencyToBeInvoiced.BiWeekly;
+
+            }
+        }
+
+        #region Private Helpers
+
         private static bool SameAgreements(List<int> a, List<long> b)
         {
             if (a.Count != b.Count) return false;
@@ -561,5 +575,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             return true;
         }
+
+        #endregion
     }
 }
