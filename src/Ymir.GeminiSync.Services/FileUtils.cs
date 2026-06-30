@@ -13,20 +13,6 @@ public static class FileUtils
         AllowTrailingCommas = true
     };
 
-    public static List<GarbageBinCollectionLine> ReadList(string filePath)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-            throw new ArgumentException("File path is required.", nameof(filePath));
-
-        if (!File.Exists(filePath))
-            throw new FileNotFoundException("JSON file not found.", filePath);
-
-        var json = File.ReadAllText(filePath);
-
-        var items = JsonSerializer.Deserialize<List<GarbageBinCollectionLine>>(json, Options);
-        return items ?? new List<GarbageBinCollectionLine>();
-    }
-
     public static async Task<List<GarbageBinCollectionLine>> ReadGarbageBinListAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
@@ -53,7 +39,7 @@ public static class FileUtils
         return items ?? new List<AgreementPlaceHistoryLine>();
     }
 
-    public static async Task<List<AgreementPlaceConnectionLine>> ReadAgreementConnectionLines(string filePath)
+    public static async Task<T> ReadFileContent<T>(string filePath) where T: class
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("File path is required.", nameof(filePath));
@@ -62,20 +48,7 @@ public static class FileUtils
             throw new FileNotFoundException("JSON file not found.", filePath);
 
         await using var stream = File.OpenRead(filePath);
-        var items = await JsonSerializer.DeserializeAsync<List<AgreementPlaceConnectionLine>>(stream, Options);
-        return items ?? new List<AgreementPlaceConnectionLine>();
-    }
-
-    public static async Task<List<LoglineExportLine>> ReadLogLineExportLines(string filePath)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-            throw new ArgumentException("File path is required.", nameof(filePath));
-
-        if (!File.Exists(filePath))
-            throw new FileNotFoundException("JSON file not found.", filePath);
-
-        await using var stream = File.OpenRead(filePath);
-        var items = await JsonSerializer.DeserializeAsync<List<LoglineExportLine>>(stream, Options);
-        return items ?? new List<LoglineExportLine>();
+        var deserializedValue = await JsonSerializer.DeserializeAsync<T>(stream, Options);
+        return deserializedValue ?? default;
     }
 }

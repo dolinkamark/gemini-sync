@@ -10,6 +10,8 @@ public class ConnectionTimelineDto
 
     public UtilityUnitConnectionType UtilityUnitConnectionType { get; set; }
 
+    public CompostType? CompostType { get; set; }
+
     public DateTime DateFrom { get; set; }
 
     public DateTime? DateTo { get; set; }

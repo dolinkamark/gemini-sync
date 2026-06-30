@@ -43,8 +43,6 @@ public class FractionsInTimeManualTests
             .ToList();
 
         var partialGroups = intervalGroups
-            .Skip(1000)
-            .Take(5000)
             .ToList();
 
         var processed = 0;
