@@ -27,7 +27,9 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             //Closed intervals
             for (int i = 0; i < currentLines.Count - 1; i++)
             {
-                bool isCabin = !string.IsNullOrWhiteSpace(currentLines[i].BuildingType) && currentLines[i].BuildingType.StartsWith("16");
+                var dateTo = currentLines[i + 1].ToDate == null ?
+                    currentLines[i + 1].FromDate.AddHours(-12) :
+                    currentLines[i].ToDate.Value.AddHours(12);
 
                 timelines.Add(new ConnectionTimelineDto
                 {
@@ -35,7 +37,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                     IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(),
                     IsConnectedToPublicContainer = IsPublicContainer(currentLines[i].PlaceType),
                     DateFrom = currentLines[i].FromDate.AddHours(12),
-                    DateTo = currentLines[i + 1].FromDate.AddHours(-12),
+                    DateTo = dateTo,
                     UtilityUnitConnectionType = GetUtilitytype(currentLines[i].BuildingType),
                 });
             }
@@ -49,7 +51,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(),
                 IsConnectedToPublicContainer = IsPublicContainer(lastInterval.PlaceType),
                 DateFrom = lastInterval.FromDate.AddHours(12),
-                DateTo = lastInterval.ToDate?.AddHours(12),
+                DateTo = lastInterval.ToDate != null ? lastInterval.ToDate.Value.AddHours(12) : null,
                 UtilityUnitConnectionType = GetUtilitytype(lastInterval.BuildingType),
             });
 
