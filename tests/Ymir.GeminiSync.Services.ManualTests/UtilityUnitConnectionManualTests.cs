@@ -1,4 +1,5 @@
-﻿using NSubstitute;
+﻿using Microsoft.Extensions.Options;
+using NSubstitute;
 using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Settings;
@@ -8,6 +9,12 @@ namespace Ymir.GeminiSync.Services.ManualTests;
 public class UtilityUnitConnectionManualTests
 {
     private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
+    private readonly IOptions<UtilityConnectionsServiceOptions> _serviceOptions = Substitute.For<IOptions<UtilityConnectionsServiceOptions>>();
+
+    private readonly UtilityConnectionsServiceOptions _testOptions = new UtilityConnectionsServiceOptions
+    {
+        PublicContainerName = "Bruksdel nedgravd"
+    };
 
     private readonly GeminiSettings _settings = new GeminiSettings
     {
@@ -21,13 +28,15 @@ public class UtilityUnitConnectionManualTests
         _httpClientFactory
             .CreateClient(Arg.Any<string>())
             .Returns(_ => new HttpClient());
+
+        _serviceOptions.Value.Returns(_testOptions);
     }
 
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task UptadeUtilityConnections()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\20260625\\agreement_places20260624.json";
+        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_places_20260701.json";
         const string publicContainerName = "Bruksdel nedgravd";
 
         var errorCollection = new List<(long, string)>();
@@ -35,13 +44,16 @@ public class UtilityUnitConnectionManualTests
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
-        DateTime minDate = new DateTime(1900, 1, 1);
         var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(filePath);
+
+        var utilityConnectionsService = new UtilityConnectionsService(_serviceOptions);
+        var connectionTimelines = utilityConnectionsService.CreateUtilityUnitTimelines(connectionLines);
 
         var agreementGroups = connectionLines
             .Where(l => !String.IsNullOrWhiteSpace(l.ExternalAgreementId))
             .GroupBy(l => l.AgreementId);
 
+        var updateDtoList = new List<UtilityUnitConnectionUpdateDto>();
         foreach (var agreementGroup in agreementGroups)
         {
             var timelines = new List<ConnectionTimelineDto>();
@@ -85,33 +97,37 @@ public class UtilityUnitConnectionManualTests
                 ConnectionsInTime = timelines
             };
 
-            try
-            {
-                var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline((int)agreementGroup.Key, updateDto);
+            updateDtoList.Add(updateDto);
 
-                if (isSuccessful)
-                {
-                    updateCount++;
-                }
-                else
-                {
-                    errorCollection.Add((agreementGroup.Key, $"Update failed for agreementId: {agreementGroup.Key}"));
-                }
-
-            }
-            catch (Exception ex)
-            {
-                errorCollection.Add((agreementGroup.Key, ex.ToString()));
-                Console.WriteLine($"Ooops error at {lastInterval.ExternalAgreementId}");
-            }
+            
         }
+
+        //try
+        //{
+        //    var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline((int)agreementGroup.Key, updateDto);
+
+        //    if (isSuccessful)
+        //    {
+        //        updateCount++;
+        //    }
+        //    else
+        //    {
+        //        errorCollection.Add((agreementGroup.Key, $"Update failed for agreementId: {agreementGroup.Key}"));
+        //    }
+
+        //}
+        //catch (Exception ex)
+        //{
+        //    errorCollection.Add((agreementGroup.Key, ex.ToString()));
+        //    Console.WriteLine($"Ooops error at {lastInterval.ExternalAgreementId}");
+        //}
 
         //Assert
         Assert.Fail("Manual test only");
     }
 
     //Exemptions
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task UptadeUtilityConnectionsWithCompost()
     {
         //Arrange
@@ -124,7 +140,6 @@ public class UtilityUnitConnectionManualTests
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
-        DateTime minDate = new DateTime(1900, 1, 1);
         var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(utilityConnectionsFilePath);
         var exemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(agreementExemptionsFilePath);
 
