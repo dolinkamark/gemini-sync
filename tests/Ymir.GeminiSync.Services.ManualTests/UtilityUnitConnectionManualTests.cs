@@ -61,8 +61,6 @@ public class UtilityUnitConnectionManualTests
 
             var agreementId = timeline.ConnectionsInTime[0].AgreementId;
 
-            if (agreementId != 69881) continue;
-
             try
             {
                 var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline(agreementId, timeline);
@@ -169,7 +167,6 @@ public class UtilityUnitConnectionManualTests
             try
             {
                 var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline((int)agreementGroup.Key, updateDto);
-                //var isSuccessful = true;
 
                 if (isSuccessful)
                 {

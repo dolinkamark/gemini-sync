@@ -10,10 +10,10 @@ public class GarbageBinCollectionServiceTests
         //Arrange
         const string filePath = "Data\\GarbageBins_SingleGeminiAgreement.json";
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
-        var geminiServices = new GarbageBinCollectionBuilder();
+        var geminiServices = new GarbageBinService();
 
         //Act
-        var states = geminiServices.BuildStateInTimeCollections(collectionLines);
+        var states = geminiServices.CreateStateInTimeCollections(collectionLines);
 
         //Assert
         Assert.Single(states);
@@ -26,10 +26,10 @@ public class GarbageBinCollectionServiceTests
         //Arrange
         const string filePath = "Data\\GarbageBins_HasToDates.json";
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
-        var geminiServices = new GarbageBinCollectionBuilder();
+        var geminiServices = new GarbageBinService();
 
         //Act
-        var states = geminiServices.BuildStateInTimeCollections(collectionLines);
+        var states = geminiServices.CreateStateInTimeCollections(collectionLines);
 
         //Assert
         Assert.Equal(2, states.Count);
@@ -41,10 +41,10 @@ public class GarbageBinCollectionServiceTests
         //Arrange
         const string filePath = "Data\\GarbageBins_271.json";
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
-        var geminiServices = new GarbageBinCollectionBuilder();
+        var geminiServices = new GarbageBinService();
 
         //Act
-        var states = geminiServices.BuildStateInTimeCollections(collectionLines);
+        var states = geminiServices.CreateStateInTimeCollections(collectionLines);
 
         //Assert
         Assert.Fail("Unfinished test");

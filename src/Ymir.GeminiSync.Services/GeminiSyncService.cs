@@ -5,7 +5,7 @@ namespace Ymir.GeminiSync.Services;
 
 public class GeminiSyncService(
     IGarbageBinCollectionRepository garbageBinRepository,
-    IGarbageBinCollectionBuilder garbageBinService,
+    IGarbageBinService garbageBinService,
     IGeminiClient geminiClient) : IGeminiSyncService
 {
     private const string PlaceTypeDescription = "Spann";

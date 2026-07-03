@@ -32,7 +32,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
             var noEndDate = new DateTime(1900, 1, 1);
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
             var collectionLine = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
-            var garbageBinCollectionBuilder = new GarbageBinCollectionBuilder();
+            var garbageBinCollectionBuilder = new GarbageBinService();
 
             //Act
             var groupedByPlaces = collectionLine
@@ -43,7 +43,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
 
             foreach (var place in groupedByPlaces)
             {
-                var states = garbageBinCollectionBuilder.BuildStateInTimeCollections(place.Value);
+                var states = garbageBinCollectionBuilder.CreateStateInTimeCollections(place.Value);
                 var stateInTime = new GarbageBinsStateInTimeDto();
 
                 foreach (var state in states)

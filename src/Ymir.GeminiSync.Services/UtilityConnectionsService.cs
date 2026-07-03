@@ -102,6 +102,8 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
         return utilityUnitTimelines;
     }
 
+    #region Private Helpers
+
     private (long, DateTime?, DateTime?)? CheckDataQualityError(AgreementPlaceConnectionLine currentLine)
     {
         if(currentLine.FromDate == currentLine.ToDate)
@@ -154,4 +156,6 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
         bool isCabin = !string.IsNullOrWhiteSpace(buildingType) && buildingType.StartsWith("16");
         return isCabin ? UtilityUnitConnectionType.Cabin : UtilityUnitConnectionType.Housing;
     }
+
+    #endregion
 }

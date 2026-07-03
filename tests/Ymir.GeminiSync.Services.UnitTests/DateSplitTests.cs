@@ -26,10 +26,10 @@ namespace Ymir.GeminiSync.Services.UnitTests
             const string filePath = "Data\\Agreements_40004.json";
             var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
 
-            var garbageBinService = new GarbageBinCollectionBuilder();
+            var garbageBinService = new GarbageBinService();
             
             //Act
-            var states = garbageBinService.BuildStateInTimeCollections(collectionLines);
+            var states = garbageBinService.CreateStateInTimeCollections(collectionLines);
 
             //Assert
             Assert.Fail("Unfinished test");

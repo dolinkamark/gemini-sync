@@ -33,63 +33,14 @@ public class GarbageBinSyncManualTest
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var errorCollection = new List<(int, string)>();
-        var garbageBinCollectionBuilder = new GarbageBinCollectionBuilder();
+        var garbageBinService = new GarbageBinService();
 
         //Act
-
-        //Filter out invalid containers by size
-        var filteredLines = collectionLines
-            .Where(l => l.ShortName < 1000 && l.PlaceNr != null)
-            .ToList();
-
-        //Adjust agreements based on building id
-
-
-        var groupedByPlaces = filteredLines
-            .GroupBy(x => (int)x.PlaceNr)
-            .ToDictionary(g => g.Key, g => g.ToList());
-
-        var orderedGroups = groupedByPlaces
-            .OrderBy(g => g.Key)
-            .ToList();
+        var garbageBinStateInTimeList = garbageBinService.CreateGarbageBinsStateInTimeList(collectionLines);
 
         int updatedCount = 0;
-
-        var groupsToRun = orderedGroups
-            .ToList();
-
-        foreach (var place in groupsToRun)
+        foreach (var stateInTime in garbageBinStateInTimeList)
         {
-            //if (place.Key != 54302) continue;
-
-            var states = garbageBinCollectionBuilder.BuildStateInTimeCollections(place.Value);
-            var stateInTime = new GarbageBinsStateInTimeDto();
-
-            foreach (var state in states)
-            {
-                var isCabin = state.Lines.All(s => !string.IsNullOrWhiteSpace(s.BuildingType) && s.BuildingType.StartsWith("16"));
-
-                var collectionDto = new GarbageBinsCollectionDto
-                {
-                    GarbageBinCollectionId = place.Key,
-                    NumberOfConnectedUtilityUnit = 1,
-                    UtilityUnitType = isCabin ? GarbageBinUtilityUnitType.Cabin : GarbageBinUtilityUnitType.Housing,
-                    GarbageBins = state.Lines.Select(l => new GarbageBinDto
-                    {
-                        GarbageBinId = (int)l.AgreementLineId,
-                        GarbageBinCategory = GeminiUtils.ToGarbageBinCategory(l.FractionName),
-                        BinSize = l.ShortName ?? 0,
-                        FrequencyToBeInvoiced = GeminiUtils.MapGarbageBinFrequency(l.Frequence),
-                        IsLockable = l.HasLock,
-                        IsCompactor = false
-                    }).ToList(),
-                    InEffectFrom = state.StartDate,
-                    InEffectTo = state.EndDate,
-                };
-
-                stateInTime.StateInTime.Add(collectionDto);
-            }
-
             if (stateInTime.StateInTime.Count > 0)
             {
                 var isSuccessful = await testGeminiClient.UpdateGarbageBinCollection(stateInTime);
@@ -122,7 +73,7 @@ public class GarbageBinSyncManualTest
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var errorCollection = new List<(int, string)>();
-        var garbageBinCollectionBuilder = new GarbageBinCollectionBuilder();
+        var garbageBinCollectionBuilder = new GarbageBinService();
 
         //Act
 
@@ -151,7 +102,7 @@ public class GarbageBinSyncManualTest
         {
             //if (place.Key != 54302) continue;
 
-            var states = garbageBinCollectionBuilder.BuildStateInTimeCollections(place.Value);
+            var states = garbageBinCollectionBuilder.CreateStateInTimeCollections(place.Value);
             var stateInTime = new GarbageBinsStateInTimeDto();
 
             foreach (var state in states)

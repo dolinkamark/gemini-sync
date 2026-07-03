@@ -1,11 +1,67 @@
 ﻿using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Abstract;
+using Ymir.GeminiSync.Services.ManualTests;
 using Ymir.GeminiSync.Services.Models;
 
 namespace Ymir.GeminiSync.Services;
 
-public class GarbageBinCollectionBuilder : IGarbageBinCollectionBuilder
+public class GarbageBinService : IGarbageBinService
 {
+    private const string CabinBuildingTypePrefix = "16";
+
+    public List<GarbageBinsStateInTimeDto> CreateGarbageBinsStateInTimeList(List<GarbageBinCollectionLine> collectionLines)
+    {
+        var stateInTimeList = new List<GarbageBinsStateInTimeDto>();
+
+        var filteredLines = collectionLines
+            .Where(l => l.ShortName < 1000 && l.PlaceNr != null)
+            .ToList();
+
+        var groupedByPlaces = filteredLines
+            .GroupBy(x => (int)x.PlaceNr)
+            .ToDictionary(g => g.Key, g => g.ToList())
+            .OrderBy(g => g.Key)
+            .ToList();
+
+        foreach (var place in groupedByPlaces)
+        {
+            var states = CreateStateInTimeCollections(place.Value);
+            var stateInTime = new GarbageBinsStateInTimeDto();
+
+            foreach (var state in states)
+            {
+                var isCabin = state.Lines.All(s =>
+                    !string.IsNullOrWhiteSpace(s.BuildingType)
+                    && s.BuildingType.StartsWith(CabinBuildingTypePrefix)
+                );
+
+                var collectionDto = new GarbageBinsCollectionDto
+                {
+                    GarbageBinCollectionId = place.Key,
+                    NumberOfConnectedUtilityUnit = 1,
+                    UtilityUnitType = isCabin ? GarbageBinUtilityUnitType.Cabin : GarbageBinUtilityUnitType.Housing,
+                    GarbageBins = state.Lines.Select(l => new GarbageBinDto
+                    {
+                        GarbageBinId = (int)l.AgreementLineId,
+                        GarbageBinCategory = GeminiUtils.ToGarbageBinCategory(l.FractionName),
+                        BinSize = l.ShortName ?? 0,
+                        FrequencyToBeInvoiced = GeminiUtils.MapGarbageBinFrequency(l.Frequence),
+                        IsLockable = l.HasLock,
+                        IsCompactor = false
+                    }).ToList(),
+                    InEffectFrom = state.StartDate,
+                    InEffectTo = state.EndDate,
+                };
+
+                stateInTime.StateInTime.Add(collectionDto);
+            }
+
+            stateInTimeList.Add(stateInTime);
+        }
+
+        return stateInTimeList;
+    }
+
     /// <summary>
     /// Builds a timeline of collection "states" where each state is defined by the set (and count)
     /// of active GarbageBinCollectionLine entries ("bins") for a contiguous date range.
@@ -16,7 +72,7 @@ public class GarbageBinCollectionBuilder : IGarbageBinCollectionBuilder
     /// - ToDate is treated as the *change date* (exclusive). So an interval ends the day before ToDate.Date.
     /// - ToDate == 1900-01-01 (or <= that) means "open-ended" (no end).
     /// </summary>
-    public List<StateInTimeCollection> BuildStateInTimeCollections(List<GarbageBinCollectionLine> lines)
+    public List<StateInTimeCollection> CreateStateInTimeCollections(List<GarbageBinCollectionLine> lines)
     {
         if (lines == null || lines.Count == 0)
             return new List<StateInTimeCollection>();
@@ -101,7 +157,6 @@ public class GarbageBinCollectionBuilder : IGarbageBinCollectionBuilder
 
         return stateInTimeCollection;
     }
-
 
     private void ApplyEvent(
         List<GarbageBinCollectionLine> removes,

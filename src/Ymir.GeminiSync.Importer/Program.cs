@@ -62,7 +62,7 @@ builder.Services.AddSingleton(Options.Create(importerOptions));
 builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();
 builder.Services.AddTransient<IAgreementExcemptionRepository, AgreementExcemptionRepository>();
 builder.Services.AddTransient<IAgreementPlacesRepository, AgreementPlacesRepository>();
-builder.Services.AddTransient<IGarbageBinCollectionBuilder, GarbageBinCollectionBuilder>();
+builder.Services.AddTransient<IGarbageBinService, GarbageBinService>();
 builder.Services.AddHostedService<SyncWorker>();
 
 var host = builder.Build();

@@ -13,7 +13,7 @@ public class SyncWorker(
     IAgreementPlacesRepository agreementPlacesRepository,
     IAgreementExcemptionRepository agreementExcemptionRepository,
     IGarbageBinCollectionRepository garbageBinRepository,
-    IGarbageBinCollectionBuilder collectionService,
+    IGarbageBinService collectionService,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,7 +53,7 @@ public class SyncWorker(
 
                     Console.WriteLine($"Total bins returned for type {placeType}: {garbageBins.Count}");
 
-                    var groupedBins = collectionService.BuildStateInTimeCollections(garbageBins);
+                    var groupedBins = collectionService.CreateStateInTimeCollections(garbageBins);
 
                     Console.WriteLine($"Grouped bin count for type {placeType} (state of time): {garbageBins.Count}");
                 }
