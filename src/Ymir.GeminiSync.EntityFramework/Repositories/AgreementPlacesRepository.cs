@@ -6,11 +6,11 @@ namespace Ymir.GeminiSync.EntityFramework.Repositories;
 
 public class AgreementPlacesRepository(WasteManagementContext dbContext) : IAgreementPlacesRepository
 {
-    public Task<List<AgreementPlaceConnectionLine>> GetAgreementPlaceConnections(int customerId)
+    public Task<List<AgreementPlaceConnectionLine>> GetAgreementPlaceConnections(int customerId, string placeTypeDescription)
     {
         return dbContext.AgreementPlaceConnections
             .FromSqlInterpolated(
-                $"EXEC dbo.GetAgreementPlaceConnections @CustomerId={customerId}")
+                $"EXEC dbo.GetAgreementPlaceConnections @CustomerId={customerId}, @PlaceTypeDescription={placeTypeDescription}")
             .AsNoTracking()
             .ToListAsync();
     }

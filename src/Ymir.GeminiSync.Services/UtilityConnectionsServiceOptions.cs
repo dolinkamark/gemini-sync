@@ -2,5 +2,7 @@
 
 public class UtilityConnectionsServiceOptions
 {
-    public string PublicContainerName { get; set; }
+    public List<string> PublicContainerNames { get; set; }
+
+    public List<string> NotConnectedToPickupSystem { get; set; }
 }

@@ -86,38 +86,54 @@ namespace Ymir.GeminiSync.Services.ManualTests
             Assert.Fail("Manual test only");
         }
 
-        [Fact(Skip = "Manual test only")]
+        [Fact]
         public async Task UpdatePrivateContainerFractionsInTime()
         {
             //Arrange
-            const string filePath = "E:\\Temp\\Ymir\\private_container_agreements_to_places.json";
+            const string filePath = "E:\\Temp\\Ymir\\20260629\\agreement_place_history_lines_Nedgravd privat_20260630.json";
+
+            var errorCollection = new List<(long, string)>();
+            var updateCount = 0;
 
             DateTime minDate = new DateTime(1900, 1, 1);
             var placeLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(filePath);
             var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
             //Act
-            var groupedLines = placeLines.GroupBy(l => l.PlaceNr);
+            var groupedLines = placeLines
+                .GroupBy(l => l.PlaceNr)
+                .ToList();
 
             foreach (var agreementPlaceLines in groupedLines)
             {
-                var geminiIntervals = GeminiUtils.BuildGeminiToAgreementIntervalsByDate(agreementPlaceLines.ToList());
-                var fractionsTimeline = PrivateContainerTimelineMapper.ToPrivateContainerFractionTimelinesNew(geminiIntervals);
-
-                //Adjust times
-                fractionsTimeline.ForEach(timeline =>
+                try
                 {
-                    timeline.FractionsInTime.ForEach(fraction =>
+                    var geminiIntervals = GeminiUtils.BuildGeminiToAgreementIntervalsByDate(agreementPlaceLines.ToList());
+                    var fractionsTimeline = PrivateContainerTimelineMapper.ToPrivateContainerFractionTimelinesNew(geminiIntervals);
+
+                    //Adjust times
+                    fractionsTimeline.ForEach(timeline =>
                     {
-                        fraction.DateFrom = fraction.DateFrom.AddHours(12);
-                        fraction.DateTo = fraction.DateTo?.AddHours(12);
+                        timeline.FractionsInTime.ForEach(fraction =>
+                        {
+                            fraction.DateFrom = fraction.DateFrom.AddHours(12);
+                            fraction.DateTo = fraction.DateTo?.AddHours(12);
+                        });
                     });
-                });
 
-                var isSuccessful = await testGeminiClient.UpdatePrivateContainerGroupFractions(agreementPlaceLines.Key, fractionsTimeline);
-                if (!isSuccessful)
+                    var isSuccessful = await testGeminiClient.UpdatePrivateContainerGroupFractions(agreementPlaceLines.Key, fractionsTimeline);
+                    if (isSuccessful)
+                    {
+                        updateCount++;
+                    }
+                    else
+                    {
+                        errorCollection.Add((agreementPlaceLines.Key, $"Update failed for agreementId: {agreementPlaceLines.Key}"));
+                    }
+                }
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Whoops " + agreementPlaceLines.Key);
+                    errorCollection.Add((agreementPlaceLines.Key, ex.ToString()));
                 }
             }
 

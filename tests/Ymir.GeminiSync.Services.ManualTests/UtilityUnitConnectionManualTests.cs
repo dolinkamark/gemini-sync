@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using NSubstitute;
+using System.Text.Json;
 using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Settings;
@@ -13,7 +14,8 @@ public class UtilityUnitConnectionManualTests
 
     private readonly UtilityConnectionsServiceOptions _testOptions = new UtilityConnectionsServiceOptions
     {
-        PublicContainerName = "Bruksdel nedgravd"
+        PublicContainerNames = new List<string> { "Bruksdel nedgravd", "Hyttecontainer" },
+        NotConnectedToPickupSystem = new List<string> { "Hyttecontainer" },
     };
 
     private readonly GeminiSettings _settings = new GeminiSettings
@@ -36,103 +38,61 @@ public class UtilityUnitConnectionManualTests
     public async Task UptadeUtilityConnections()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_places_20260701.json";
-        const string publicContainerName = "Bruksdel nedgravd";
-
-        var errorCollection = new List<(long, string)>();
-        var updateCount = 0;
+        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_places_Hyttecontainer_20260703.json";
+        const string agreementExemptionsFilePath = "E:\\Temp\\Ymir\\202607\\agreement_exemptions_Spann_20260702.json";
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
         var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(filePath);
 
         var utilityConnectionsService = new UtilityConnectionsService(_serviceOptions);
-        var connectionTimelines = utilityConnectionsService.CreateUtilityUnitTimelines(connectionLines);
+        var connectionTimelines = utilityConnectionsService.CreateUtilityUnitTimelines(connectionLines, null);
 
-        var agreementGroups = connectionLines
-            .Where(l => !String.IsNullOrWhiteSpace(l.ExternalAgreementId))
-            .GroupBy(l => l.AgreementId);
+        var updateCount = 0;
+        var errorCollection = new List<(long, string)>();
 
-        var updateDtoList = new List<UtilityUnitConnectionUpdateDto>();
-        foreach (var agreementGroup in agreementGroups)
+        foreach (var timeline in connectionTimelines)
         {
-            var timelines = new List<ConnectionTimelineDto>();
-            var currentLines = agreementGroup
-                .OrderBy(l => l.FromDate)
-                .ToList();
-
-            //Closed intervals
-            for (int i = 0; i < currentLines.Count - 1; i++)
+            if(timeline.ConnectionsInTime.Count == 0)
             {
-                bool isPublicContainer = currentLines[i].PlaceType.ToLower() == publicContainerName.ToLower();
-                bool isCabin = !string.IsNullOrWhiteSpace(currentLines[i].BuildingType) && currentLines[i].BuildingType.StartsWith("16");
-
-                timelines.Add(new ConnectionTimelineDto
-                {
-                    AgreementId = Int32.Parse(currentLines[i].ExternalAgreementId),
-                    IsConnectedToGarbagePickupSystem = true,
-                    IsConnectedToPublicContainer = isPublicContainer,
-                    DateFrom = currentLines[i].FromDate.AddHours(12),
-                    DateTo = currentLines[i + 1].FromDate.AddHours(-12),
-                    UtilityUnitConnectionType = isCabin ? UtilityUnitConnectionType.Cabin : UtilityUnitConnectionType.Housing
-                });
+                errorCollection.Add((0, "Invalid timeline: ConnectionsInTime doesn't contain any items"));
+                continue;
             }
 
-            //Last interval
-            var lastInterval = currentLines[^1];
-            bool isLastCabin = !string.IsNullOrWhiteSpace(lastInterval.BuildingType) && lastInterval.BuildingType.StartsWith("16");
+            var agreementId = timeline.ConnectionsInTime[0].AgreementId;
 
-            timelines.Add(new ConnectionTimelineDto
+            if (agreementId != 69881) continue;
+
+            try
             {
-                AgreementId = Int32.Parse(lastInterval.ExternalAgreementId),
-                IsConnectedToGarbagePickupSystem = true,
-                IsConnectedToPublicContainer = lastInterval.PlaceType?.ToLower() == publicContainerName.ToLower(),
-                DateFrom = lastInterval.FromDate.AddHours(12),
-                DateTo = lastInterval.ToDate?.AddHours(12),
-                UtilityUnitConnectionType = isLastCabin ? UtilityUnitConnectionType.Cabin : UtilityUnitConnectionType.Housing
-            });
-
-            var updateDto = new UtilityUnitConnectionUpdateDto
+                var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline(agreementId, timeline);
+                
+                if (isSuccessful)
+                {
+                    updateCount++;
+                }
+                else
+                {
+                    errorCollection.Add((agreementId, $"Update failed for dto: {JsonSerializer.Serialize(timeline)}"));
+                }
+            }
+            catch (Exception ex)
             {
-                ConnectionsInTime = timelines
-            };
-
-            updateDtoList.Add(updateDto);
-
-            
+                errorCollection.Add((agreementId, ex.ToString()));
+            }
         }
-
-        //try
-        //{
-        //    var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline((int)agreementGroup.Key, updateDto);
-
-        //    if (isSuccessful)
-        //    {
-        //        updateCount++;
-        //    }
-        //    else
-        //    {
-        //        errorCollection.Add((agreementGroup.Key, $"Update failed for agreementId: {agreementGroup.Key}"));
-        //    }
-
-        //}
-        //catch (Exception ex)
-        //{
-        //    errorCollection.Add((agreementGroup.Key, ex.ToString()));
-        //    Console.WriteLine($"Ooops error at {lastInterval.ExternalAgreementId}");
-        //}
 
         //Assert
         Assert.Fail("Manual test only");
     }
 
     //Exemptions
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task UptadeUtilityConnectionsWithCompost()
     {
         //Arrange
-        const string utilityConnectionsFilePath = "E:\\Temp\\Ymir\\20260625\\agreement_places20260624.json";
-        const string agreementExemptionsFilePath = "E:\\Temp\\Ymir\\20260629\\agreement_exemptions_20260630.json";
+        const string utilityConnectionsFilePath = "E:\\Temp\\Ymir\\202607\\agreement_places_Spann_20260702.json";
+        const string agreementExemptionsFilePath = "E:\\Temp\\Ymir\\202607\\agreement_exemptions_Spann_20260702.json";
         const string publicContainerName = "Bruksdel nedgravd";
 
         var errorCollection = new List<(long, string)>();
@@ -153,7 +113,8 @@ public class UtilityUnitConnectionManualTests
 
         var agreementGroups = agreementsWithExemption
             .Where(l => !String.IsNullOrWhiteSpace(l.ExternalAgreementId))
-            .GroupBy(l => l.AgreementId);
+            .GroupBy(l => l.AgreementId)
+            .ToList();
 
         foreach (var agreementGroup in agreementGroups)
         {
@@ -171,8 +132,6 @@ public class UtilityUnitConnectionManualTests
             {
                 bool isPublicContainer = currentLines[i].PlaceType.ToLower() == publicContainerName.ToLower();
                 bool isCabin = !string.IsNullOrWhiteSpace(currentLines[i].BuildingType) && currentLines[i].BuildingType.StartsWith("16");
-
-                //var relatedExemption = 
 
                 timelines.Add(new ConnectionTimelineDto
                 {
@@ -210,6 +169,7 @@ public class UtilityUnitConnectionManualTests
             try
             {
                 var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline((int)agreementGroup.Key, updateDto);
+                //var isSuccessful = true;
 
                 if (isSuccessful)
                 {

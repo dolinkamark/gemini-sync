@@ -1,5 +1,6 @@
 CREATE OR ALTER PROCEDURE dbo.GetAgreementPlaceConnections
-    @CustomerId INT
+    @CustomerId INT,
+    @PlaceTypeDescription NVARCHAR(255)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -8,6 +9,8 @@ BEGIN
         ap.[CustomerId],
         ap.[AgreementId],
         a.[ExternalAgreementId],
+        a.[Bid],
+        a.[NrOfOccupancyUnits],
         ap.[PlaceNr],
         pt.[PlaceTypeId],
         pt.[Description] AS PlaceType,
@@ -28,6 +31,6 @@ BEGIN
     INNER JOIN dbo.PlaceType AS pt
         ON pt.PlaceTypeId = ppt.PlaceTypeId
        AND pt.CustomerId = ppt.CustomerId
-    WHERE ap.CustomerId = @CustomerId;
+    WHERE ap.CustomerId = @CustomerId AND pt.[Description] = @PlaceTypeDescription;
 END;
 GO
