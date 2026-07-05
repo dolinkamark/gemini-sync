@@ -1,7 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
 using NSubstitute;
 using System.Text.Json;
+using Ymir.GeminiSync.Common;
 using Ymir.GeminiSync.Domain;
+using Ymir.GeminiSync.Domain.Repositories;
+using Ymir.GeminiSync.Services.Abstract;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Settings;
 
@@ -10,7 +13,13 @@ namespace Ymir.GeminiSync.Services.ManualTests;
 public class UtilityUnitConnectionManualTests
 {
     private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
+    private readonly IOptions<SyncReportOptions> _syncReportOptions = Substitute.For<IOptions<SyncReportOptions>>();
     private readonly IOptions<UtilityConnectionsServiceOptions> _serviceOptions = Substitute.For<IOptions<UtilityConnectionsServiceOptions>>();
+
+    private readonly IAgreementPlacesRepository _agreementPlacesRepository = Substitute.For<IAgreementPlacesRepository>();
+    private readonly IAgreementExcemptionRepository _agreementExcemptionsRepository = Substitute.For<IAgreementExcemptionRepository>();
+    private readonly IUtilityConnectionsService _utilityConnectionService = Substitute.For<IUtilityConnectionsService>();
+    private readonly ISyncReportRepository _syncReportRepository;
 
     private readonly UtilityConnectionsServiceOptions _testOptions = new UtilityConnectionsServiceOptions
     {
@@ -25,6 +34,11 @@ public class UtilityUnitConnectionManualTests
         SubscriptionKey = "3d8d028ee9be4cc9a9e4ac0a92068966"
     };
 
+    private readonly SyncReportOptions _reportOptions = new SyncReportOptions
+    {
+        FilePath = "E:\\Temp\\Ymir"
+    };
+
     public UtilityUnitConnectionManualTests()
     {
         _httpClientFactory
@@ -32,6 +46,9 @@ public class UtilityUnitConnectionManualTests
             .Returns(_ => new HttpClient());
 
         _serviceOptions.Value.Returns(_testOptions);
+        _syncReportOptions.Value.Returns(_reportOptions);
+
+        _syncReportRepository = new SyncReportFileRepository(_syncReportOptions);
     }
 
     [Fact]
@@ -40,45 +57,26 @@ public class UtilityUnitConnectionManualTests
         //Arrange
         const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_places_Hyttecontainer_20260703.json";
         const string agreementExemptionsFilePath = "E:\\Temp\\Ymir\\202607\\agreement_exemptions_Spann_20260702.json";
+        const int testCustomerId = 2;
+        const string placeTypes = "Sekk i spann";
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
         var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(filePath);
+        _agreementPlacesRepository
+            .GetUtilityUnitConnections(Arg.Any<int>(), Arg.Any<string>())
+            .Returns(Task.FromResult(connectionLines));
 
-        var utilityConnectionsService = new UtilityConnectionsService(_serviceOptions);
-        var connectionTimelines = utilityConnectionsService.CreateUtilityUnitTimelines(connectionLines, null);
+        var utilitySyncService = new UtilityConnectionsSyncService(
+            _agreementPlacesRepository,
+            _agreementExcemptionsRepository,
+            _utilityConnectionService,
+            _syncReportRepository,
+            testGeminiClient
+        );
 
-        var updateCount = 0;
-        var errorCollection = new List<(long, string)>();
-
-        foreach (var timeline in connectionTimelines)
-        {
-            if(timeline.ConnectionsInTime.Count == 0)
-            {
-                errorCollection.Add((0, "Invalid timeline: ConnectionsInTime doesn't contain any items"));
-                continue;
-            }
-
-            var agreementId = timeline.ConnectionsInTime[0].AgreementId;
-
-            try
-            {
-                var isSuccessful = await testGeminiClient.UpdateUtilityConnectionTimeline(agreementId, timeline);
-                
-                if (isSuccessful)
-                {
-                    updateCount++;
-                }
-                else
-                {
-                    errorCollection.Add((agreementId, $"Update failed for dto: {JsonSerializer.Serialize(timeline)}"));
-                }
-            }
-            catch (Exception ex)
-            {
-                errorCollection.Add((agreementId, ex.ToString()));
-            }
-        }
+        //Act
+        var syncReport = utilitySyncService.SyncUtilityUnitConnections(testCustomerId, placeTypes);
 
         //Assert
         Assert.Fail("Manual test only");

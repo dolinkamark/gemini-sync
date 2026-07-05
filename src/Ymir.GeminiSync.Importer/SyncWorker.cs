@@ -61,7 +61,7 @@ public class SyncWorker(
 
             if (options.Entities.Contains(EntityTypes.Fractions))
             {
-                var agreementPlaces = await agreementPlacesRepository.GetAgreementPlaceHistory(customerId, placeTypes);
+                var agreementPlaces = await agreementPlacesRepository.GetFractionsHistory(customerId, placeTypes);
 
                 if (options.UseFileCache)
                 {
@@ -78,7 +78,7 @@ public class SyncWorker(
             if (options.Entities.Contains(EntityTypes.UtilityConnections))
             {
                 //Step 1.b) Verify if the utility connections are correct
-                var agreementPlaces = await agreementPlacesRepository.GetAgreementPlaceConnections(customerId, placeTypes);
+                var agreementPlaces = await agreementPlacesRepository.GetUtilityUnitConnections(customerId, placeTypes);
                 if (options.UseFileCache)
                 {
                     Console.WriteLine("Saving agreement places");

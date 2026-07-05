@@ -4,11 +4,11 @@ using Ymir.GeminiSync.Services.Abstract;
 
 namespace Ymir.GeminiSync.Services;
 
-public class GeminiSyncService(
+public class GarbageBinSyncService(
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinService garbageBinService,
     ISyncReportRepository reportRepository,
-    IGeminiClient geminiClient) : IGeminiSyncService
+    IGeminiClient geminiClient) : IGarbageBinSyncService
 {
     public async Task<SyncReport> SyncGarbageBinCollections(int customerId, string placeTypeDescription)
     {
@@ -59,17 +59,8 @@ public class GeminiSyncService(
         }
 
         //Step 4) Save report
-
+        await reportRepository.SaveReport(syncReport);
 
         return syncReport;
-    }
-
-    public async Task SyncUtilityUnitConnections(int customerId, string placeTypeDescription)
-    {
-        //Step 1) Get things to sync
-
-        //Step 2) Sync changed parts
-
-        //Step 3) Create and save report
     }
 }

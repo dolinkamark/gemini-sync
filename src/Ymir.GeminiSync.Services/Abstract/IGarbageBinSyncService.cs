@@ -2,9 +2,7 @@
 
 namespace Ymir.GeminiSync.Services.Abstract;
 
-public interface IGeminiSyncService
+public interface IGarbageBinSyncService
 {
     Task<SyncReport> SyncGarbageBinCollections(int customerId, string placeTypeDescription);
-
-    Task SyncUtilityUnitConnections(int customerId, string placeTypeDescription);
 }

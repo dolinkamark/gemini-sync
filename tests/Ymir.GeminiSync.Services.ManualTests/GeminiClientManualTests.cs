@@ -6,7 +6,7 @@ using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services.ManualTests;
 
-public class GeminiClientTests
+public class GeminiClientManualTests
 {
     private readonly HttpClient _testHttpClient;
     private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
@@ -18,7 +18,7 @@ public class GeminiClientTests
         SubscriptionKey = "3d8d028ee9be4cc9a9e4ac0a92068966"
     };
 
-    public GeminiClientTests()
+    public GeminiClientManualTests()
     {
         _testHttpClient = new HttpClient();
         _httpClientFactory

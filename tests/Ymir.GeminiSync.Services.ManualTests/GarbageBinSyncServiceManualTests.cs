@@ -7,10 +7,12 @@ using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services.ManualTests;
 
-public class GeminiSyncManualTests
+public class GarbageBinSyncServiceManualTests
 {
     private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
     private readonly IOptions<SyncReportOptions> _syncReportOptions = Substitute.For<IOptions<SyncReportOptions>>();
+
+    private readonly ISyncReportRepository _syncReportRepository;
 
     private readonly GeminiSettings _settings = new GeminiSettings
     {
@@ -24,16 +26,17 @@ public class GeminiSyncManualTests
         FilePath = "E:\\Temp\\Ymir"
     };
 
-    public GeminiSyncManualTests()
+    public GarbageBinSyncServiceManualTests()
     {
         _httpClientFactory
             .CreateClient(Arg.Any<string>())
             .Returns(_ => new HttpClient());
 
         _syncReportOptions.Value.Returns(_reportOptions);
+        _syncReportRepository = new SyncReportFileRepository(_syncReportOptions);
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task SyncGarbageBinCollections_HasFiles()
     {
         //Arrange
@@ -47,10 +50,11 @@ public class GeminiSyncManualTests
             .Returns(Task.FromResult(collectionLines));
 
         var garbageBinService = new GarbageBinService();
-        var fileReportRepository = new SyncReportFileRepository(_syncReportOptions);
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
-        var testGeminiSyncService = new GeminiSyncService(garbageBinRepository, garbageBinService, fileReportRepository, testGeminiClient);
+        var testGeminiSyncService = new GarbageBinSyncService(
+            garbageBinRepository, garbageBinService, _syncReportRepository, testGeminiClient
+        );
 
         //Act
         var syncReport = await testGeminiSyncService.SyncGarbageBinCollections(customerId, placeType);
