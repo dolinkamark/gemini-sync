@@ -45,7 +45,7 @@ public class GarbageBinService : IGarbageBinService
                         GarbageBinId = (int)l.AgreementLineId,
                         GarbageBinCategory = GeminiUtils.ToGarbageBinCategory(l.FractionName),
                         BinSize = l.ShortName ?? 0,
-                        FrequencyToBeInvoiced = GeminiUtils.MapGarbageBinFrequency(l.Frequence),
+                        FrequencyToBeInvoiced = MapGarbageBinFrequency(l.Frequence),
                         IsLockable = l.HasLock,
                         IsCompactor = false
                     }).ToList(),
@@ -183,5 +183,18 @@ public class GarbageBinService : IGarbageBinService
 
         // End is exclusive at day granularity: the state changes on toDate.Date
         return toDate.Date;
+    }
+
+    public GarbageBinsFrequencyToBeInvoiced MapGarbageBinFrequency(int? frequency)
+    {
+        switch (frequency)
+        {
+            case 0: return GarbageBinsFrequencyToBeInvoiced.TwicePerWeek;
+            case 2: return GarbageBinsFrequencyToBeInvoiced.Weekly;
+            case 1:
+            default:
+                return GarbageBinsFrequencyToBeInvoiced.BiWeekly;
+
+        }
     }
 }

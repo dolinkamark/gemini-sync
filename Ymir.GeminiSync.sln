@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.Services.Un
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.SyncFunction", "src\Ymir.GeminiSync.SyncFunction\Ymir.GeminiSync.SyncFunction.csproj", "{36CCEB84-644E-4ED9-A2E5-3C93BF37408C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ymir.GeminiSync.Common", "src\Ymir.GeminiSync.Common\Ymir.GeminiSync.Common.csproj", "{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,18 @@ Global
 		{36CCEB84-644E-4ED9-A2E5-3C93BF37408C}.Release|x64.Build.0 = Release|Any CPU
 		{36CCEB84-644E-4ED9-A2E5-3C93BF37408C}.Release|x86.ActiveCfg = Release|Any CPU
 		{36CCEB84-644E-4ED9-A2E5-3C93BF37408C}.Release|x86.Build.0 = Release|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Debug|x64.Build.0 = Debug|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Debug|x86.Build.0 = Debug|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Release|x64.ActiveCfg = Release|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Release|x64.Build.0 = Release|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Release|x86.ActiveCfg = Release|Any CPU
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -127,6 +141,7 @@ Global
 		{BC869D35-4AF8-4E46-B2D0-5EB1E7ECC646} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{A3180DD3-1ABE-43DE-A270-29D8FD3D4D11} = {08B87C17-24F8-40EF-99DB-F97C6890A5AB}
 		{36CCEB84-644E-4ED9-A2E5-3C93BF37408C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{A5C2F900-95B8-40E1-BBEC-7F64FD2C1CC4} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CA8717BF-631E-44D9-B81E-FB43DE8EEE7A}

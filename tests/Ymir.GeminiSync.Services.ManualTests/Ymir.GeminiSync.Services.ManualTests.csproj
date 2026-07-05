@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Ymir.GeminiSync.Common\Ymir.GeminiSync.Common.csproj" />
     <ProjectReference Include="..\..\src\Ymir.GeminiSync.Domain\Ymir.GeminiSync.Domain.csproj" />
     <ProjectReference Include="..\..\src\Ymir.GeminiSync.Services\Ymir.GeminiSync.Services.csproj" />
   </ItemGroup>
