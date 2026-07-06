@@ -147,6 +147,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
         return (fromDate, toDate);
     }
+    
     private bool IsConnectedToGarbagePickupSystem(string placeType)
     {
         return !options.Value.NotConnectedToPickupSystem

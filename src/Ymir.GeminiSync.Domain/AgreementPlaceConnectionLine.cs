@@ -2,7 +2,6 @@
 
 public class AgreementPlaceConnectionLine
 {
-
     public int CustomerId { get; set; }
 
     public long AgreementId { get; set; }

@@ -1,0 +1,61 @@
+﻿[
+  {
+    "DateFrom": "2026-04-20T00:00:00+02:00",
+    "DateTo": "2026-04-20T00:00:00+02:00",
+    "ModifiedAt": "2026-04-20T07:37:15.387+02:00",
+    "Agreements": [
+      {
+        "AgreementId": 18661,
+        "FractionNumerator": 1,
+        "FractionDenominator": 5
+      },
+      {
+        "AgreementId": 18661,
+        "FractionNumerator": 1,
+        "FractionDenominator": 5
+      },
+      {
+        "AgreementId": 18664,
+        "FractionNumerator": 1,
+        "FractionDenominator": 5
+      },
+      {
+        "AgreementId": 18690,
+        "FractionNumerator": 1,
+        "FractionDenominator": 5
+      },
+      {
+        "AgreementId": 69881,
+        "FractionNumerator": 1,
+        "FractionDenominator": 5
+      }
+    ]
+  },
+  {
+    "DateFrom": "2026-04-21T00:00:00+02:00",
+    "DateTo": null,
+    "ModifiedAt": "2026-04-20T07:37:15.387+02:00",
+    "Agreements": [
+      {
+        "AgreementId": 18661,
+        "FractionNumerator": 1,
+        "FractionDenominator": 4
+      },
+      {
+        "AgreementId": 18661,
+        "FractionNumerator": 1,
+        "FractionDenominator": 4
+      },
+      {
+        "AgreementId": 18664,
+        "FractionNumerator": 1,
+        "FractionDenominator": 4
+      },
+      {
+        "AgreementId": 18690,
+        "FractionNumerator": 1,
+        "FractionDenominator": 4
+      }
+    ]
+  }
+]

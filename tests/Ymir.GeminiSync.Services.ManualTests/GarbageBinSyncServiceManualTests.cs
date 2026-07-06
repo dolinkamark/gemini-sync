@@ -36,11 +36,11 @@ public class GarbageBinSyncServiceManualTests
         _syncReportRepository = new SyncReportFileRepository(_syncReportOptions);
     }
 
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task SyncGarbageBinCollections_HasFiles()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\202607\\garbage_bins_Spann_20260705.json";
+        const string filePath = "E:\\Temp\\Ymir\\202607\\garbage_bins_Spann_20260706.json";
         const int customerId = 2;
         const string placeType = "Spann";
 

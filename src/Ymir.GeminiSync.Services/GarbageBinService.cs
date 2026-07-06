@@ -43,7 +43,7 @@ public class GarbageBinService : IGarbageBinService
                     GarbageBins = state.Lines.Select(l => new GarbageBinDto
                     {
                         GarbageBinId = (int)l.AgreementLineId,
-                        GarbageBinCategory = GeminiUtils.ToGarbageBinCategory(l.FractionName),
+                        GarbageBinCategory = ToGarbageBinCategory(l.FractionName),
                         BinSize = l.ShortName ?? 0,
                         FrequencyToBeInvoiced = MapGarbageBinFrequency(l.Frequence),
                         IsLockable = l.HasLock,
@@ -158,6 +158,8 @@ public class GarbageBinService : IGarbageBinService
         return stateInTimeCollection;
     }
 
+    #region Private Helpers
+
     private void ApplyEvent(
         List<GarbageBinCollectionLine> removes,
         List<GarbageBinCollectionLine> adds,
@@ -185,11 +187,11 @@ public class GarbageBinService : IGarbageBinService
         return toDate.Date;
     }
 
-    public GarbageBinsFrequencyToBeInvoiced MapGarbageBinFrequency(int? frequency)
+    private GarbageBinsFrequencyToBeInvoiced MapGarbageBinFrequency(int? frequency)
     {
         switch (frequency)
         {
-            case 0: return GarbageBinsFrequencyToBeInvoiced.TwicePerWeek;
+            case 3: return GarbageBinsFrequencyToBeInvoiced.TwicePerWeek;
             case 2: return GarbageBinsFrequencyToBeInvoiced.Weekly;
             case 1:
             default:
@@ -197,4 +199,28 @@ public class GarbageBinService : IGarbageBinService
 
         }
     }
+
+    private GarbageBinCategory ToGarbageBinCategory(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+            return GarbageBinCategory.OtherWaste;
+
+        return category.Trim().ToLowerInvariant() switch
+        {
+            "bio" => GarbageBinCategory.Bio,
+            "mat/hage" => GarbageBinCategory.Bio,
+            "juletre" => GarbageBinCategory.Bio,
+
+            "papp/papir" => GarbageBinCategory.Paper,
+
+            "glass" => GarbageBinCategory.GlassAndMetal,
+
+            "restavfall" => GarbageBinCategory.OtherWaste,
+            "plast" => GarbageBinCategory.OtherWaste,
+
+            _ => GarbageBinCategory.OtherWaste
+        };
+    }
+
+    #endregion
 }

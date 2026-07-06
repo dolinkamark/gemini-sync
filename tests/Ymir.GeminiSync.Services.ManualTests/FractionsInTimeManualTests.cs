@@ -1,5 +1,8 @@
 ﻿using NSubstitute;
+using System.Text.Json;
 using Ymir.GeminiSync.Domain;
+using Ymir.GeminiSync.Domain.Repositories;
+using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Services.ManualTests;
@@ -7,6 +10,7 @@ namespace Ymir.GeminiSync.Services.ManualTests;
 public class FractionsInTimeManualTests
 {
     private readonly IHttpClientFactory _httpClientFactory = Substitute.For<IHttpClientFactory>();
+    private readonly IAgreementPlacesRepository _agreementPlacesRepository = Substitute.For<IAgreementPlacesRepository>();
 
     private readonly GeminiSettings _settings = new GeminiSettings
     {
@@ -22,67 +26,96 @@ public class FractionsInTimeManualTests
             .Returns(_ => new HttpClient());
     }
 
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task UpdateFractionsInTime()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\20260629\\agreement_place_history_lines_Spann_20260629.json";
+        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_place_history_lines_Hyttecontainer_20260706.json";
 
-        DateTime minDate = new DateTime(1900, 1, 1);
         var placeLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(filePath);
         placeLines = placeLines
             .Where(p => !String.IsNullOrWhiteSpace(p.ExternalAgreementId))
             .ToList();
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+        var fractionService = new FractionService();
+        var fractionsSyncService = new FractionsSyncService(_agreementPlacesRepository, testGeminiClient);
+
+        var testLines = placeLines.Where(p => p.PlaceNr == 1185842).ToList();
+        var testContent = JsonSerializer.Serialize(testLines);
 
         //Act
-        var intervals = GeminiUtils.BuildIntervalsByDate(placeLines);
+        var intervals = fractionService.BuildFractionIntervalsByDate(placeLines);
 
         var intervalGroups = intervals
             .GroupBy(i => i.PlaceNr)
             .ToList();
 
-        var partialGroups = intervalGroups
-            .ToList();
+        var updatedCount = 0;
+        var syncReport = new SyncReport();
 
-        var processed = 0;
-        var errorLines = new List<(int, string)>();
+        var fractionsInTimeList = new List<(int, List<AgreementFractionTimeline>)>();
 
-        foreach (var intervalGroup in partialGroups)
+        foreach (var intervalGroup in intervalGroups)
+        {
+            if (intervalGroup.Key != 1185842) continue;
+
+            var currentIntervals = intervalGroup.ToList();
+            var fractionsInTime = fractionService.CreateFractionsInTime(currentIntervals);
+
+            //Fix incorrect date intervals if DateFrom and ToDate overlaps
+            for (int i = 0; i < fractionsInTime.Count - 1; ++i)
+            {
+                if (fractionsInTime[i].DateFrom.Date == fractionsInTime[i].DateTo?.Date)
+                {
+                    fractionsInTime[i].DateFrom = fractionsInTime[i].DateFrom.AddDays(-1);
+                }
+            }
+
+            fractionsInTime.ForEach(f =>
+            {
+                f.DateFrom = f.DateFrom.AddHours(12);
+
+                if (f.DateTo != null)
+                {
+                    f.DateTo = f.DateTo.Value.AddHours(12);
+                }
+            });
+
+            var timelines = fractionService.CreateFractionTimelines(fractionsInTime);
+
+            fractionsInTimeList.Add((intervalGroup.Key, timelines));
+        }
+
+        foreach (var fractionsInTime in fractionsInTimeList)
         {
             try
             {
-                var currentIntervals = intervalGroup.ToList();
-                var fractions = GeminiUtils.ToFractionsInTime(currentIntervals);
-                fractions.ForEach(f =>
-                {
-                    f.DateFrom = f.DateFrom.AddHours(12);
-
-                    if (f.DateTo != null)
-                    {
-                        f.DateTo = f.DateTo.Value.AddHours(12);
-                    }
-                });
-
-                var timelines = GeminiUtils.ToFractionTimelines(fractions);
-
-                var isSuccessful = await testGeminiClient.UpdateFractionsInTime(intervalGroup.Key, timelines);
+                var isSuccessful = await testGeminiClient.UpdateFractionsInTime(fractionsInTime.Item1, fractionsInTime.Item2);
                 if (!isSuccessful)
                 {
-                    Console.WriteLine("Whoops " + intervalGroup.Key);
-                    errorLines.Add((intervalGroup.Key, "Gemini client call failed"));
+                    syncReport.Errors.Add(new SyncError
+                    {
+                        PlaceNr = fractionsInTime.Item1,
+                        Description = "Gemini client Fractions update call failed"
+                    });
                 }
                 else
                 {
-                    processed++;
+                    updatedCount++;
                 }
             }
             catch (Exception ex)
             {
-                errorLines.Add((intervalGroup.Key, ex.ToString()));
+                syncReport.Errors.Add(new SyncError
+                {
+                    PlaceNr = fractionsInTime.Item1,
+                    Description = ex.ToString()
+                });
             }
         }
+
+        syncReport.UpdatedCount = updatedCount;
 
         //Assert
         Assert.Fail("Manual test only");

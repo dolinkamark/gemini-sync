@@ -17,6 +17,8 @@ public class GarbageBinSyncService(
         //Step 1) Get things to sync
         var garbageBinCollections = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypeDescription);
 
+        //garbageBinCollections = garbageBinCollections.Where(c => c.ExternalAgreementId == "18443").ToList();
+
         //Step 2) Build the dto list to send
         var garbageBinStateInTimeList = garbageBinService.CreateGarbageBinsStateInTimeList(garbageBinCollections);
 
@@ -57,6 +59,8 @@ public class GarbageBinSyncService(
                 });
             }
         }
+
+        syncReport.UpdatedCount = updatedCount;
 
         //Step 4) Save report
         await reportRepository.SaveReport(syncReport);

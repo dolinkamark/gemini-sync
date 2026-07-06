@@ -1,0 +1,57 @@
+﻿[
+  {
+    "CustomerId": 2,
+    "PlaceNr": 1185842,
+    "AgreementId": 51148,
+    "ExternalAgreementId": "69881",
+    "NrOfOccupancyUnits": 1,
+    "FromDate": "2026-04-20T00:00:00",
+    "ToDate": "2026-04-20T00:00:00",
+    "CreatedAt": "2026-04-20T07:33:35.863",
+    "UpdatedAt": "2026-04-20T07:37:15.387"
+  },
+  {
+    "CustomerId": 2,
+    "PlaceNr": 1185842,
+    "AgreementId": 51300,
+    "ExternalAgreementId": "18690",
+    "NrOfOccupancyUnits": 1,
+    "FromDate": "2026-04-20T00:00:00",
+    "ToDate": null,
+    "CreatedAt": "2026-04-20T07:33:35.863",
+    "UpdatedAt": "2026-04-20T07:37:15.387"
+  },
+  {
+    "CustomerId": 2,
+    "PlaceNr": 1185842,
+    "AgreementId": 56504,
+    "ExternalAgreementId": "18661",
+    "NrOfOccupancyUnits": 1,
+    "FromDate": "2026-04-20T00:00:00",
+    "ToDate": null,
+    "CreatedAt": "2026-04-20T07:33:35.863",
+    "UpdatedAt": "2026-04-20T07:37:15.387"
+  },
+  {
+    "CustomerId": 2,
+    "PlaceNr": 1185842,
+    "AgreementId": 56505,
+    "ExternalAgreementId": "18661",
+    "NrOfOccupancyUnits": 1,
+    "FromDate": "2026-04-20T00:00:00",
+    "ToDate": null,
+    "CreatedAt": "2026-04-20T07:33:35.863",
+    "UpdatedAt": "2026-04-20T07:37:15.387"
+  },
+  {
+    "CustomerId": 2,
+    "PlaceNr": 1185842,
+    "AgreementId": 64108,
+    "ExternalAgreementId": "18664",
+    "NrOfOccupancyUnits": 1,
+    "FromDate": "2026-04-20T00:00:00",
+    "ToDate": null,
+    "CreatedAt": "2026-04-20T07:33:35.863",
+    "UpdatedAt": "2026-04-20T07:37:15.387"
+  }
+]

@@ -1,0 +1,63 @@
+﻿[
+  {
+    "PlaceNr": 1185842,
+    "FromDate": "2026-04-20T00:00:00",
+    "ToDate": "2026-04-20T00:00:00",
+    "UpdatedAt": "2026-04-20T07:37:15.387",
+    "AgreementOccupancyList": [
+      {
+        "AgreementId": 56504,
+        "GeminiAgreementId": 18661,
+        "NrOfOccupancyUnits": 1
+      },
+      {
+        "AgreementId": 56505,
+        "GeminiAgreementId": 18661,
+        "NrOfOccupancyUnits": 1
+      },
+      {
+        "AgreementId": 64108,
+        "GeminiAgreementId": 18664,
+        "NrOfOccupancyUnits": 1
+      },
+      {
+        "AgreementId": 51300,
+        "GeminiAgreementId": 18690,
+        "NrOfOccupancyUnits": 1
+      },
+      {
+        "AgreementId": 51148,
+        "GeminiAgreementId": 69881,
+        "NrOfOccupancyUnits": 1
+      }
+    ]
+  },
+  {
+    "PlaceNr": 1185842,
+    "FromDate": "2026-04-21T00:00:00",
+    "ToDate": null,
+    "UpdatedAt": "2026-04-20T07:37:15.387",
+    "AgreementOccupancyList": [
+      {
+        "AgreementId": 56504,
+        "GeminiAgreementId": 18661,
+        "NrOfOccupancyUnits": 1
+      },
+      {
+        "AgreementId": 56505,
+        "GeminiAgreementId": 18661,
+        "NrOfOccupancyUnits": 1
+      },
+      {
+        "AgreementId": 64108,
+        "GeminiAgreementId": 18664,
+        "NrOfOccupancyUnits": 1
+      },
+      {
+        "AgreementId": 51300,
+        "GeminiAgreementId": 18690,
+        "NrOfOccupancyUnits": 1
+      }
+    ]
+  }
+]
