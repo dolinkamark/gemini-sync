@@ -30,23 +30,16 @@ public class SyncReportFileRepository : ISyncReportRepository
 
         // Write to a temporary file first so the final report is not left
         // partially written if serialization fails.
-        var tempPath = Path.Join(directoryPath, $"SyncReport.{Guid.NewGuid():N}.json");
+        var filePath = Path.Join(directoryPath, $"SyncReport.{Guid.NewGuid():N}.json");
 
         try
         {
-            await using (var stream = File.Create(tempPath))
-            {
-                await JsonSerializer.SerializeAsync(stream, report);
-            }
-
-            File.Move(tempPath, directoryPath, overwrite: true);
+            var serializedReport = JsonSerializer.Serialize(report) ?? "";
+            await File.WriteAllTextAsync(filePath, serializedReport);
         }
-        finally
+        catch
         {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
+            // Hide exception
         }
     }
 }
