@@ -30,7 +30,7 @@ public class FractionsInTimeManualTests
     public async Task UpdateFractionsInTime()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_place_history_lines_Hyttecontainer_20260706.json";
+        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_place_history_lines_Sekk i spann_20260706.json";
 
         var placeLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(filePath);
         placeLines = placeLines
@@ -46,57 +46,28 @@ public class FractionsInTimeManualTests
 
         //Act
         var intervals = fractionService.BuildFractionIntervalsByDate(placeLines);
-
-        var intervalGroups = intervals
-            .GroupBy(i => i.PlaceNr)
-            .ToList();
+        var timelines = fractionService.CreateFractionTimelines(intervals);
 
         var updatedCount = 0;
         var syncReport = new SyncReport();
 
-        var fractionsInTimeList = new List<(int, List<AgreementFractionTimeline>)>();
-
-        foreach (var intervalGroup in intervalGroups)
-        {
-            if (intervalGroup.Key != 1185842) continue;
-
-            var currentIntervals = intervalGroup.ToList();
-            var fractionsInTime = fractionService.CreateFractionsInTime(currentIntervals);
-
-            //Fix incorrect date intervals if DateFrom and ToDate overlaps
-            for (int i = 0; i < fractionsInTime.Count - 1; ++i)
-            {
-                if (fractionsInTime[i].DateFrom.Date == fractionsInTime[i].DateTo?.Date)
-                {
-                    fractionsInTime[i].DateFrom = fractionsInTime[i].DateFrom.AddDays(-1);
-                }
-            }
-
-            fractionsInTime.ForEach(f =>
-            {
-                f.DateFrom = f.DateFrom.AddHours(12);
-
-                if (f.DateTo != null)
-                {
-                    f.DateTo = f.DateTo.Value.AddHours(12);
-                }
-            });
-
-            var timelines = fractionService.CreateFractionTimelines(fractionsInTime);
-
-            fractionsInTimeList.Add((intervalGroup.Key, timelines));
-        }
-
-        foreach (var fractionsInTime in fractionsInTimeList)
+        foreach(var currentTimeline in timelines)
         {
             try
             {
-                var isSuccessful = await testGeminiClient.UpdateFractionsInTime(fractionsInTime.Item1, fractionsInTime.Item2);
+                //Adjust hours to avoid dayshift by timezone
+                currentTimeline.Item2.ForEach(t => t.FractionsInTime.ForEach(f =>
+                {
+                    f.DateFrom = f.DateFrom.AddHours(12);
+                    f.DateTo = f.DateTo?.AddHours(12);
+                }));
+
+                var isSuccessful = await testGeminiClient.UpdateFractionsInTime(currentTimeline.Item1, currentTimeline.Item2);
                 if (!isSuccessful)
                 {
                     syncReport.Errors.Add(new SyncError
                     {
-                        PlaceNr = fractionsInTime.Item1,
+                        PlaceNr = currentTimeline.Item1,
                         Description = "Gemini client Fractions update call failed"
                     });
                 }
@@ -109,7 +80,7 @@ public class FractionsInTimeManualTests
             {
                 syncReport.Errors.Add(new SyncError
                 {
-                    PlaceNr = fractionsInTime.Item1,
+                    PlaceNr = currentTimeline.Item1,
                     Description = ex.ToString()
                 });
             }

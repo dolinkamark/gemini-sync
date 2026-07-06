@@ -5,9 +5,7 @@ namespace Ymir.GeminiSync.Services.Abstract;
 
 public interface IFractionService
 {
-    List<FractionInTime> CreateFractionsInTime(List<PlaceAgreementInterval> intervals);
-
-    List<AgreementFractionTimeline> CreateFractionTimelines(List<FractionInTime> intervals);
-
     List<PlaceAgreementInterval> BuildFractionIntervalsByDate(List<AgreementPlaceHistoryLine> lines);
+
+    List<(int, List<AgreementFractionTimeline>)> CreateFractionTimelines(List<PlaceAgreementInterval> intervals);
 }

@@ -47,7 +47,7 @@ public class FractionServiceTests
     }
 
     [Fact]
-    public async Task CreateFractionsInTime()
+    public async Task CreateFractionTimelines_Test()
     {
         //Arrange
         const string testFilePath = "Data\\FractionIntervals_1185842.json";
@@ -56,28 +56,9 @@ public class FractionServiceTests
         var fractionService = new FractionService();
 
         //Act
-        var fractionsInTime = fractionService.CreateFractionsInTime(testFractionIntervals);
+        var fractionTimelines = fractionService.CreateFractionTimelines(testFractionIntervals);
 
         //Assert
         Assert.Fail("Unfinished test");
     }
-
-    [Fact]
-    public async Task CreateFractionTimelines_Test()
-    {
-        //Arrange
-        const string testFilePath = "Data\\FractionsInTime_1185842.json";
-        var testFractionsInTime = await FileUtils.ReadFileContent<List<FractionInTime>>(testFilePath);
-
-        var fractionService = new FractionService();
-
-        //Act
-        var fractionTimelines = fractionService.CreateFractionTimelines(testFractionsInTime);
-
-        var testContent = JsonSerializer.Serialize(fractionTimelines);
-
-        //Assert
-        Assert.Fail("Unfinished test");
-    }
-
 }

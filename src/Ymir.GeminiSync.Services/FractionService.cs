@@ -153,71 +153,72 @@ public class FractionService : IFractionService
         return agreementIntervals;
     }
 
-    public List<FractionInTime> CreateFractionsInTime(List<PlaceAgreementInterval> intervals)
-    {
-        var fractionInTimeList = new List<FractionInTime>();
-
-        foreach (var interval in intervals)
-        {
-            var denominator = interval.AgreementOccupancyList.Sum(o => o.NrOfOccupancyUnits);
-
-            fractionInTimeList.Add(new FractionInTime
-            {
-                DateFrom = new DateTimeOffset(interval.FromDate),
-                DateTo = interval.ToDate.HasValue
-                            ? new DateTimeOffset(interval.ToDate.Value)
-                            : (DateTimeOffset?)null,
-                ModifiedAt = new DateTimeOffset(interval.UpdatedAt),
-
-                Agreements = interval.AgreementOccupancyList
-                    .Select(occupancy => new FractionAgreement
-                    {
-                        AgreementId = occupancy.GeminiAgreementId,
-                        FractionNumerator = occupancy.NrOfOccupancyUnits,
-                        FractionDenominator = denominator
-                    })
-                    .ToList()
-            });
-        }
-
-        return fractionInTimeList;
-    }
-
-    public List<AgreementFractionTimeline> CreateFractionTimelines(List<FractionInTime> intervals)
+    /// <summary>
+    /// Creates a list of AgreementFractionTimeline related to every PlaceNr in the intervals
+    /// </summary>
+    /// <param name="intervals">AgreementPlaceHistory lines grouped as intervals</param>
+    /// <returns>A list of tuple containing PlaceNr and the related AgreementFractionTimeline list</returns>
+    public List<(int, List<AgreementFractionTimeline>)> CreateFractionTimelines(List<PlaceAgreementInterval> intervals)
     {
         if (intervals == null || intervals.Count == 0)
             return new();
 
-        return intervals
-            // Flatten: one row per (interval + agreement fraction)
-            .SelectMany(interval =>
-                interval.Agreements.Select(agreement => new
-                {
-                    agreement.AgreementId,
-                    interval.DateFrom,
-                    interval.DateTo,
-                    agreement.FractionNumerator,
-                    agreement.FractionDenominator
-                }))
-            // Group by agreement
-            .GroupBy(x => x.AgreementId)
-            .Select(group => new AgreementFractionTimeline
-            {
-                AgreementId = group.Key,
-
-                FractionsInTime = group
-                    .OrderBy(x => x.DateFrom)
-                    .Select(x => new FractionTimeEntry
-                    {
-                        DateFrom = x.DateFrom,
-                        DateTo = x.DateTo,
-                        FractionNumerator = x.FractionNumerator,
-                        FractionDenominator = x.FractionDenominator
-                    })
-                    .ToList()
-            })
-            .OrderBy(x => x.AgreementId)
+        var timelines = new List<(int, List<AgreementFractionTimeline>)>();
+        var intervalsByPlace = intervals
+            .GroupBy(i => i.PlaceNr)
             .ToList();
+
+        //Step 1) The intervals must be created for each place separately
+        foreach(var intervalList in intervalsByPlace)
+        {
+            var orderedIntervals = intervalList
+                .OrderBy(i => i.FromDate)
+                .ToList();
+
+            var agreementEntryList = new List<(int, FractionTimeEntry)>();
+            foreach (var currentInterval in orderedIntervals)
+            {
+                var totalUnits = currentInterval.AgreementOccupancyList.Sum(a => a.NrOfOccupancyUnits);
+
+                var geminiAgreements = currentInterval.AgreementOccupancyList
+                    .GroupBy(a => a.GeminiAgreementId)
+                    .ToList();
+
+                foreach(var geminiAgreement in geminiAgreements)
+                {
+                    var currentUnits = geminiAgreement.Sum(a => a.NrOfOccupancyUnits);
+                    var dateFrom = currentInterval.FromDate.Date == currentInterval.ToDate?.Date ?
+                        currentInterval.FromDate.AddDays(-1) :
+                        currentInterval.FromDate;
+
+                    var fractionEntry = new FractionTimeEntry
+                    {
+                        DateFrom = currentInterval.FromDate,
+                        DateTo = currentInterval.ToDate,
+                        FractionNumerator = currentUnits,
+                        FractionDenominator = totalUnits,
+                    };
+
+                    agreementEntryList.Add((geminiAgreement.Key, fractionEntry));
+                }
+            }
+
+            //Piece the timelines together by agreement
+            var agreementFractionTimelines = agreementEntryList
+                .GroupBy(entry => entry.Item1)
+                .Select(group => new AgreementFractionTimeline
+                {
+                    AgreementId = group.Key,
+                    FractionsInTime = group
+                        .Select(entry => entry.Item2)
+                        .ToList()
+                })
+                .ToList();
+
+            timelines.Add((intervalList.Key, agreementFractionTimelines));
+        }
+
+        return timelines;
     }
 
     #region Private Helpers
