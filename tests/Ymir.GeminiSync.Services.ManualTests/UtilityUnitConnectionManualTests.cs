@@ -18,7 +18,7 @@ public class UtilityUnitConnectionManualTests
 
     private readonly IAgreementPlacesRepository _agreementPlacesRepository = Substitute.For<IAgreementPlacesRepository>();
     private readonly IAgreementExcemptionRepository _agreementExcemptionsRepository = Substitute.For<IAgreementExcemptionRepository>();
-    private readonly IUtilityConnectionsService _utilityConnectionService = Substitute.For<IUtilityConnectionsService>();
+    private readonly IUtilityConnectionsService _utilityConnectionService;
     private readonly ISyncReportRepository _syncReportRepository;
 
     private readonly UtilityConnectionsServiceOptions _testOptions = new UtilityConnectionsServiceOptions
@@ -49,13 +49,14 @@ public class UtilityUnitConnectionManualTests
         _syncReportOptions.Value.Returns(_reportOptions);
 
         _syncReportRepository = new SyncReportFileRepository(_syncReportOptions);
+        _utilityConnectionService =  new UtilityConnectionsService(_serviceOptions);
     }
 
     [Fact]
     public async Task UptadeUtilityConnections()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_places_Hyttecontainer_20260703.json";
+        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_places_Spann_20260702.json";
         const string agreementExemptionsFilePath = "E:\\Temp\\Ymir\\202607\\agreement_exemptions_Spann_20260702.json";
         const int testCustomerId = 2;
         const string placeTypes = "Sekk i spann";
@@ -67,6 +68,11 @@ public class UtilityUnitConnectionManualTests
             .GetUtilityUnitConnections(Arg.Any<int>(), Arg.Any<string>())
             .Returns(Task.FromResult(connectionLines));
 
+        var exemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(agreementExemptionsFilePath);
+        _agreementExcemptionsRepository
+            .GetAllAgreementExcemptions(Arg.Any<int>())
+            .Returns(Task.FromResult(exemptions));
+
         var utilitySyncService = new UtilityConnectionsSyncService(
             _agreementPlacesRepository,
             _agreementExcemptionsRepository,
@@ -76,7 +82,7 @@ public class UtilityUnitConnectionManualTests
         );
 
         //Act
-        var syncReport = utilitySyncService.SyncUtilityUnitConnections(testCustomerId, placeTypes);
+        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(testCustomerId, placeTypes);
 
         //Assert
         Assert.Fail("Manual test only");

@@ -18,10 +18,10 @@ public class UtilityConnectionsSyncService(
 
         //Step 1) Get things to sync
         var connectionsLines = await agreementPlacesRepository.GetUtilityUnitConnections(customerId, placeTypeDescription);
-        var exemptions = agreementExcemptionRepository.GetAllAgreementExcemptions(customerId);
+        var exemptions = await agreementExcemptionRepository.GetAllAgreementExcemptions(customerId);
 
         //Step 2) Build the dto list to send
-        var connectionTimelines = utilityConnectionService.CreateUtilityUnitTimelines(connectionsLines, null);
+        var connectionTimelines = utilityConnectionService.CreateUtilityUnitTimelines(connectionsLines, exemptions);
 
         //Step 3) Sync changed parts
         var updateCount = 0;
@@ -67,6 +67,8 @@ public class UtilityConnectionsSyncService(
                 });
             }
         }
+
+        syncReport.UpdatedCount = updateCount;
 
         //Step 4) Save report
         await reportRepository.SaveReport(syncReport);

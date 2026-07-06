@@ -66,7 +66,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                     }
                     else
                     {
-                        errorCollection.Add((agreementPlaceLines.Key, $"Update failed for agreementId: {agreementPlaceLines.Key}"));
+                        errorCollection.Add((agreementPlaceLines.Key, $"Update failed for place: {agreementPlaceLines.Key}"));
                     }
                 }
                 catch (Exception ex)
