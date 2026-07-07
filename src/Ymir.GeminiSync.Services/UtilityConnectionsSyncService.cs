@@ -26,9 +26,12 @@ public class UtilityConnectionsSyncService(
         //Step 3) Sync changed parts
         var updateCount = 0;
 
-        foreach (var timeline in connectionTimelines)
+        var partialTimelines = connectionTimelines
+            .ToList();
+
+        foreach (var timeline in partialTimelines)
         {
-            if (timeline.ConnectionsInTime.Count == 0)
+            if (timeline.updateDto.ConnectionsInTime.Count == 0)
             {
                 syncReport.Errors.Add(new SyncError
                 {
@@ -39,11 +42,9 @@ public class UtilityConnectionsSyncService(
                 continue;
             }
 
-            var agreementId = timeline.ConnectionsInTime[0].AgreementId;
-
             try
             {
-                var isSuccessful = await geminiClient.UpdateUtilityConnectionTimeline(agreementId, timeline);
+                var isSuccessful = await geminiClient.UpdateUtilityConnectionTimeline(timeline.agreementId, timeline.updateDto);
 
                 if (isSuccessful)
                 {
@@ -53,7 +54,7 @@ public class UtilityConnectionsSyncService(
                 {
                     syncReport.Errors.Add(new SyncError
                     {
-                        AgreementId = agreementId,
+                        AgreementId = timeline.agreementId,
                         Description = $"Update failed for dto: {JsonSerializer.Serialize(timeline)}"
                     });
                 }
@@ -62,7 +63,7 @@ public class UtilityConnectionsSyncService(
             {
                 syncReport.Errors.Add(new SyncError
                 {
-                    AgreementId = agreementId,
+                    AgreementId = timeline.agreementId,
                     Description = ex.ToString()
                 });
             }

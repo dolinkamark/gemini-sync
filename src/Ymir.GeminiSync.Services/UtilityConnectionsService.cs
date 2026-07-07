@@ -7,11 +7,11 @@ namespace Ymir.GeminiSync.Services;
 
 public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions> options) : IUtilityConnectionsService
 {
-    public List<UtilityUnitConnectionUpdateDto> CreateUtilityUnitTimelines(
+    public List<(long, UtilityUnitConnectionUpdateDto)> CreateUtilityUnitTimelines(
         List<AgreementPlaceConnectionLine> connectionLines,
         List<AgreementExcemption> exemptions)
     {
-        var utilityUnitTimelines = new List<UtilityUnitConnectionUpdateDto>();
+        var utilityUnitTimelines = new List<(long, UtilityUnitConnectionUpdateDto)>();
 
         //TODO: Add validation, shouldn't have empty or null ExternalAgreementId
         var agreementGroups = connectionLines
@@ -30,7 +30,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             .ToList();
 
         //Adjust occupancy by the bid grouping
-        var unitDivisionErrors = new List<(string, long, string, int?, int)>();
+        var unitDivisionErrors = new List<(string, long, string, int, int?, int)>();
         foreach (var agreementGroup in agreementsByBid)
         {
             var totalUnits = agreementGroup.First().NrOfOccupancyUnits;
@@ -41,7 +41,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 //unitDivisionErrors.Add((agreementGroup.Key, totalUnits, currentAgreements.Count));
 
                 unitDivisionErrors.AddRange(
-                    currentAgreements.Select(c => (agreementGroup.Key, c.AgreementId, c.ExternalAgreementId, totalUnits, currentAgreements.Count))
+                    currentAgreements.Select(c => (agreementGroup.Key, c.AgreementId, c.ExternalAgreementId, c.PlaceNr, totalUnits, currentAgreements.Count))
                 );
             }
             else
@@ -53,12 +53,18 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             }
         }
 
+        //Remove agreements where division doesn't work
+        var agreementsToSkip = unitDivisionErrors
+            .Select(e => e.Item2)
+            .Distinct()
+            .ToList();
+
         //Data quality validation
         var timelineErrors = new List<(long, DateTime?, DateTime?)>();
 
         foreach (var agreementGroup in agreementGroups)
         {
-            if (agreementGroup.Key != 60256) continue;
+            if (agreementsToSkip.Contains(agreementGroup.Key)) continue;
 
             var timelines = new List<ConnectionTimelineDto>();
             var currentLines = agreementGroup
@@ -85,6 +91,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                     AgreementId = Int32.Parse(currentLines[i].ExternalAgreementId),
                     IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(currentLines[i].PlaceType),
                     IsConnectedToPublicContainer = IsPublicContainer(currentLines[i].PlaceType),
+                    IncludedUtilityUnitCount = currentLines[i].NrOfOccupancyUnits,
                     DateFrom = fromDate,
                     DateTo = toDate,
                     UtilityUnitConnectionType = GetUtilitytype(currentLines[i].BuildingType),
@@ -100,16 +107,20 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 AgreementId = Int32.Parse(lastInterval.ExternalAgreementId),
                 IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(lastInterval.PlaceType),
                 IsConnectedToPublicContainer = IsPublicContainer(lastInterval.PlaceType),
+                IncludedUtilityUnitCount = lastInterval.NrOfOccupancyUnits,
                 DateFrom = lastInterval.FromDate.AddHours(12),
                 DateTo = lastInterval.ToDate?.AddHours(12),
                 CompostType = compostType,
                 UtilityUnitConnectionType = GetUtilitytype(lastInterval.BuildingType),
             });
 
-            utilityUnitTimelines.Add(new UtilityUnitConnectionUpdateDto
-            {
-                ConnectionsInTime = timelines
-            });
+            utilityUnitTimelines.Add((
+                agreementGroup.Key, 
+                new UtilityUnitConnectionUpdateDto
+                {
+                    ConnectionsInTime = timelines
+                })
+            );
         }
 
         return utilityUnitTimelines;

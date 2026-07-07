@@ -1,8 +1,6 @@
-﻿using Microsoft.Extensions.Options;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using Ymir.GeminiSync.Services.Abstract;
 using Ymir.GeminiSync.Services.Models;
 using Ymir.GeminiSync.Services.Models.Containers;
@@ -147,7 +145,7 @@ public class GeminiClient : IGeminiClient
         return await DoApiCall<List<ConnectionTimelineDto>>(url);
     }
 
-    public async Task<bool> UpdateUtilityConnectionTimeline(int agreementId, UtilityUnitConnectionUpdateDto updateDto)
+    public async Task<bool> UpdateUtilityConnectionTimeline(long agreementId, UtilityUnitConnectionUpdateDto updateDto)
     {
         string url = $"{_settings.BaseUrl}/garbagebins/api/garbage/utilityUnit/{agreementId}/connection";
 

@@ -31,5 +31,5 @@ public interface IGeminiClient
     //Utility connection
     Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId);
 
-    Task<bool> UpdateUtilityConnectionTimeline(int agreementId, UtilityUnitConnectionUpdateDto updateDto);
+    Task<bool> UpdateUtilityConnectionTimeline(long agreementId, UtilityUnitConnectionUpdateDto updateDto);
 }

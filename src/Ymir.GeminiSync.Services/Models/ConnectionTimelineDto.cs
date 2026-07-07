@@ -8,6 +8,8 @@ public class ConnectionTimelineDto
 
     public bool IsConnectedToPublicContainer { get; set; }
 
+    public int? IncludedUtilityUnitCount { get; set; }
+
     public UtilityUnitConnectionType UtilityUnitConnectionType { get; set; }
 
     public CompostType? CompostType { get; set; }

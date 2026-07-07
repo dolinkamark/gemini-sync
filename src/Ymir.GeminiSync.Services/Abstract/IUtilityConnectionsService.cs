@@ -5,7 +5,7 @@ namespace Ymir.GeminiSync.Services.Abstract;
 
 public interface IUtilityConnectionsService
 {
-    public List<UtilityUnitConnectionUpdateDto> CreateUtilityUnitTimelines(
+    public List<(long agreementId, UtilityUnitConnectionUpdateDto updateDto)> CreateUtilityUnitTimelines(
         List<AgreementPlaceConnectionLine> connectionLines,
         List<AgreementExcemption> exemptions
     );
