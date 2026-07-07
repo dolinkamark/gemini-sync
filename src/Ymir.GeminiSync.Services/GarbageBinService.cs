@@ -1,6 +1,5 @@
 ﻿using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Abstract;
-using Ymir.GeminiSync.Services.ManualTests;
 using Ymir.GeminiSync.Services.Models;
 
 namespace Ymir.GeminiSync.Services;
@@ -8,8 +7,9 @@ namespace Ymir.GeminiSync.Services;
 public class GarbageBinService : IGarbageBinService
 {
     private const string CabinBuildingTypePrefix = "16";
+    private const string PlasticBagType = "Sekk i spann";
 
-    public List<GarbageBinsStateInTimeDto> CreateGarbageBinsStateInTimeList(List<GarbageBinCollectionLine> collectionLines)
+    public List<GarbageBinsStateInTimeDto> CreateGarbageBinsStateInTimeList(List<GarbageBinCollectionLine> collectionLines, string placeType)
     {
         var stateInTimeList = new List<GarbageBinsStateInTimeDto>();
 
@@ -47,7 +47,8 @@ public class GarbageBinService : IGarbageBinService
                         BinSize = l.ShortName ?? 0,
                         FrequencyToBeInvoiced = MapGarbageBinFrequency(l.Frequence),
                         IsLockable = l.HasLock,
-                        IsCompactor = false
+                        IsCompactor = false,
+                        IsPlasticBag = placeType == PlasticBagType
                     }).ToList(),
                     InEffectFrom = state.StartDate,
                     InEffectTo = state.EndDate,

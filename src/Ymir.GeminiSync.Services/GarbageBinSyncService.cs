@@ -20,7 +20,7 @@ public class GarbageBinSyncService(
         //garbageBinCollections = garbageBinCollections.Where(c => c.ExternalAgreementId == "18443").ToList();
 
         //Step 2) Build the dto list to send
-        var garbageBinStateInTimeList = garbageBinService.CreateGarbageBinsStateInTimeList(garbageBinCollections);
+        var garbageBinStateInTimeList = garbageBinService.CreateGarbageBinsStateInTimeList(garbageBinCollections, placeTypeDescription);
 
         //TODO: log stateInTime.StateInTime == 0 as errors
 
