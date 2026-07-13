@@ -139,7 +139,7 @@ public class GeminiClient : IGeminiClient
 
     #region Public containers
 
-    public async Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId)
+    public async Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(long agreementId)
     {
         string url = $"{_settings.BaseUrl}/garbagebins/api/garbage/utilityUnit/{agreementId}/connection";
         return await DoApiCall<List<ConnectionTimelineDto>>(url);

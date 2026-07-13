@@ -4,5 +4,5 @@ namespace Ymir.GeminiSync.Services.Abstract;
 
 public interface IUtilityConnectionsSyncService
 {
-    Task<SyncReport> SyncUtilityUnitConnections(int customerId, string placeTypeDescription);
+    Task<SyncReport> SyncUtilityUnitConnections(int customerId, string placeTypeDescription, bool checkDifference = false);
 }

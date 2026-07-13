@@ -82,7 +82,7 @@ public class UtilityUnitConnectionManualTests
         );
 
         //Act
-        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(testCustomerId, placeTypes);
+        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(testCustomerId, placeTypes, true);
 
         //Assert
         Assert.Fail("Manual test only");

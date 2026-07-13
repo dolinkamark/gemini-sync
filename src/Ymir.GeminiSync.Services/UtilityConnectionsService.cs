@@ -95,7 +95,6 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
         foreach (var agreementGroup in agreementGroups)
         {
             if (hasUnevenUnitDistribution.Contains(agreementGroup.Key)) continue;
-            if (!agreementGroup.Any(l => l.NrOfOccupancyUnits > 1)) continue;
 
             var timelines = new List<ConnectionTimelineDto>();
             var currentLines = agreementGroup

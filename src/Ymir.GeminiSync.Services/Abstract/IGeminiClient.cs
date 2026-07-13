@@ -29,7 +29,7 @@ public interface IGeminiClient
     Task<bool> DeleteGarbageBinPickup(int garbageCollectionId, int pickupId);
 
     //Utility connection
-    Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(int agreementId);
+    Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(long agreementId);
 
     Task<bool> UpdateUtilityConnectionTimeline(long agreementId, UtilityUnitConnectionUpdateDto updateDto);
 }

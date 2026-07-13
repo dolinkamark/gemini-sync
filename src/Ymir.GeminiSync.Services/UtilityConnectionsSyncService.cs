@@ -12,7 +12,7 @@ public class UtilityConnectionsSyncService(
     ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IUtilityConnectionsSyncService
 {
-    public async Task<SyncReport> SyncUtilityUnitConnections(int customerId, string placeTypeDescription)
+    public async Task<SyncReport> SyncUtilityUnitConnections(int customerId, string placeTypeDescription, bool checkDifference = false)
     {
         var syncReport = new SyncReport();
 
@@ -41,19 +41,26 @@ public class UtilityConnectionsSyncService(
 
             try
             {
-                var isSuccessful = await geminiClient.UpdateUtilityConnectionTimeline(timeline.agreementId, timeline.updateDto);
-
-                if (isSuccessful)
+                if(checkDifference)
                 {
-                    updateCount++;
-                }
-                else
-                {
-                    syncReport.Errors.Add(new SyncError
+                    var utilityUnitTimeline = await geminiClient.GetUtilityConnectionTimeline(timeline.agreementId);
+                    if(utilityUnitTimeline.Count == 0)
                     {
-                        AgreementId = timeline.agreementId,
-                        Description = $"Update failed for dto: {JsonSerializer.Serialize(timeline)}"
-                    });
+                        var isSuccessful = await geminiClient.UpdateUtilityConnectionTimeline(timeline.agreementId, timeline.updateDto);
+
+                        if (isSuccessful)
+                        {
+                            updateCount++;
+                        }
+                        else
+                        {
+                            syncReport.Errors.Add(new SyncError
+                            {
+                                AgreementId = timeline.agreementId,
+                                Description = $"Update failed for dto: {JsonSerializer.Serialize(timeline)}"
+                            });
+                        }
+                    }
                 }
             }
             catch (Exception ex)
