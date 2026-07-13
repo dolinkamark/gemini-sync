@@ -26,10 +26,7 @@ public class UtilityConnectionsSyncService(
         //Step 3) Sync changed parts
         var updateCount = 0;
 
-        var partialTimelines = connectionTimelines
-            .ToList();
-
-        foreach (var timeline in partialTimelines)
+        foreach (var timeline in connectionTimelines)
         {
             if (timeline.updateDto.ConnectionsInTime.Count == 0)
             {

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using System.Linq;
 using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Abstract;
 using Ymir.GeminiSync.Services.Models;
@@ -19,7 +20,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             .GroupBy(l => l.AgreementId)
             .ToList();
 
-        var agreementsByBid = connectionLines
+        var agreementGroupsByBid = connectionLines
             .Where(c => c.NrOfOccupancyUnits > 1 && (c.ToDate == null || c.ToDate > (new DateTime(2026, 5, 1))))
             .GroupBy(c => c.Bid)
             .Where(b => b.Count() > 1)
@@ -31,17 +32,17 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
         //Adjust occupancy by the bid grouping
         var unitDivisionErrors = new List<(string, long, string, int, int?, int)>();
-        foreach (var agreementGroup in agreementsByBid)
+        foreach (var agreementGroupByBid in agreementGroupsByBid)
         {
-            var totalUnits = agreementGroup.First().NrOfOccupancyUnits;
-            var currentAgreements = agreementGroup.ToList();
+            var totalUnits = agreementGroupByBid.First().NrOfOccupancyUnits;
+            var currentAgreements = agreementGroupByBid.ToList();
 
             if (totalUnits % currentAgreements.Count != 0)
             {
                 //unitDivisionErrors.Add((agreementGroup.Key, totalUnits, currentAgreements.Count));
 
                 unitDivisionErrors.AddRange(
-                    currentAgreements.Select(c => (agreementGroup.Key, c.AgreementId, c.ExternalAgreementId, c.PlaceNr, totalUnits, currentAgreements.Count))
+                    currentAgreements.Select(c => (agreementGroupByBid.Key, c.AgreementId, c.ExternalAgreementId, c.PlaceNr, totalUnits, currentAgreements.Count))
                 );
             }
             else
@@ -53,18 +54,48 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             }
         }
 
-        //Remove agreements where division doesn't work
-        var agreementsToSkip = unitDivisionErrors
+        //Update specific rules to uneven utility unit count distrubiton
+        var hasUnevenUnitDistribution = unitDivisionErrors
             .Select(e => e.Item2)
             .Distinct()
             .ToList();
+
+        var buildingsWithUnevenDistribution = unitDivisionErrors
+            .Select(e => e.Item1)
+            .Distinct()
+            .ToList();
+
+        foreach(var currentBid in buildingsWithUnevenDistribution)
+        {
+            var relatedAgreements = connectionLines
+                .Where(l => l.Bid == currentBid)
+                .ToList();
+
+            var closedAgreements = relatedAgreements.Where(a => a.ToDate != null).ToList();
+            var openAgreements = relatedAgreements.Where(a => a.ToDate == null).ToList();
+
+            int? totalUnitCount = relatedAgreements.FirstOrDefault(n => n.NrOfOccupancyUnits != null).NrOfOccupancyUnits;
+            if (relatedAgreements.Count == 0 || totalUnitCount == null) continue;
+
+            closedAgreements.ForEach(a => a.NrOfOccupancyUnits = 0);
+
+            if(openAgreements.Count > 0)
+            {
+                openAgreements[0].NrOfOccupancyUnits = totalUnitCount;
+                for (int i = 1; i < openAgreements.Count; ++i)
+                {
+                    openAgreements[i].NrOfOccupancyUnits = 0;
+                }
+            }
+        }
 
         //Data quality validation
         var timelineErrors = new List<(long, DateTime?, DateTime?)>();
 
         foreach (var agreementGroup in agreementGroups)
         {
-            if (agreementsToSkip.Contains(agreementGroup.Key)) continue;
+            if (hasUnevenUnitDistribution.Contains(agreementGroup.Key)) continue;
+            if (!agreementGroup.Any(l => l.NrOfOccupancyUnits > 1)) continue;
 
             var timelines = new List<ConnectionTimelineDto>();
             var currentLines = agreementGroup
@@ -81,7 +112,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 var (fromDate, toDate) = GetFromToDates(currentLines[i], currentLines[i + 1]);
 
                 var dataQualityError = CheckDataQualityError(currentLines[i]);
-                if(dataQualityError != null)
+                if (dataQualityError != null)
                 {
                     timelineErrors.Add(dataQualityError.Value);
                 }
@@ -91,7 +122,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                     AgreementId = Int32.Parse(currentLines[i].ExternalAgreementId),
                     IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(currentLines[i].PlaceType),
                     IsConnectedToPublicContainer = IsPublicContainer(currentLines[i].PlaceType),
-                    IncludedUtilityUnitCount = currentLines[i].NrOfOccupancyUnits,
+                    IncludedUtilityUnitsCount = currentLines[i].NrOfOccupancyUnits,
                     DateFrom = fromDate,
                     DateTo = toDate,
                     UtilityUnitConnectionType = GetUtilitytype(currentLines[i].BuildingType),
@@ -99,7 +130,16 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             }
 
             //Last interval
-            var compostType = agreementExemptions.Any(e => e.ExcemptionType == 4) ? CompostType.GardenAndFood : CompostType.Food;
+            CompostType? compostType = null;
+            if (agreementExemptions.Any(e => e.ExcemptionType == 4))
+            {
+                compostType = CompostType.GardenAndFood;
+            }
+            else if (agreementExemptions.Any(e => e.ExcemptionType == 2))
+            {
+                compostType = CompostType.Food;
+            }
+
             var lastInterval = currentLines[^1];
 
             timelines.Add(new ConnectionTimelineDto
@@ -107,7 +147,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 AgreementId = Int32.Parse(lastInterval.ExternalAgreementId),
                 IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(lastInterval.PlaceType),
                 IsConnectedToPublicContainer = IsPublicContainer(lastInterval.PlaceType),
-                IncludedUtilityUnitCount = lastInterval.NrOfOccupancyUnits,
+                IncludedUtilityUnitsCount = lastInterval.NrOfOccupancyUnits,
                 DateFrom = lastInterval.FromDate.AddHours(12),
                 DateTo = lastInterval.ToDate?.AddHours(12),
                 CompostType = compostType,
@@ -115,7 +155,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             });
 
             utilityUnitTimelines.Add((
-                agreementGroup.Key, 
+                agreementGroup.Key,
                 new UtilityUnitConnectionUpdateDto
                 {
                     ConnectionsInTime = timelines
@@ -130,7 +170,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
     private (long, DateTime?, DateTime?)? CheckDataQualityError(AgreementPlaceConnectionLine currentLine)
     {
-        if(currentLine.FromDate == currentLine.ToDate)
+        if (currentLine.FromDate == currentLine.ToDate)
         {
             return (currentLine.AgreementId, currentLine.FromDate, currentLine.ToDate);
         }
@@ -140,25 +180,22 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
     private (DateTime fromDate, DateTime? toDate) GetFromToDates(AgreementPlaceConnectionLine currentLine, AgreementPlaceConnectionLine nextLine)
     {
-        DateTime fromDate = currentLine.FromDate.AddHours(12);
-        DateTime? toDate = null;
+        DateTime fromDate = currentLine.FromDate;
+        DateTime? toDate = currentLine.ToDate;
 
-        if (currentLine.ToDate != null)
+        if (currentLine.ToDate == null || currentLine.ToDate?.Date >= nextLine.FromDate)
         {
-            toDate = currentLine.ToDate.Value.AddHours(-12);
-        }
-        else
-        {
-            toDate = nextLine.FromDate.AddHours(-12);
-            if(fromDate.Date > toDate.Value.Date)
-            {
-                fromDate = toDate.Value.Date.AddHours(-12);
-            }
+            toDate = nextLine.FromDate.AddDays(-1);
         }
 
-        return (fromDate, toDate);
+        if(fromDate >= toDate?.Date)
+        {
+            fromDate = toDate?.AddDays(-1) ?? fromDate;
+        }
+
+        return (fromDate.AddHours(12), toDate?.AddHours(12));
     }
-    
+
     private bool IsConnectedToGarbagePickupSystem(string placeType)
     {
         return !options.Value.NotConnectedToPickupSystem
