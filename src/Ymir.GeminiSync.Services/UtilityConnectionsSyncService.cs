@@ -66,6 +66,7 @@ public class UtilityConnectionsSyncService(
             }
         }
 
+        syncReport.TotalCount = connectionTimelines.Count;
         syncReport.UpdatedCount = updateCount;
 
         //Step 4) Save report

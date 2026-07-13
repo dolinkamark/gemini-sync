@@ -60,6 +60,7 @@ public class GarbageBinSyncService(
             }
         }
 
+        syncReport.TotalCount = garbageBinStateInTimeList.Count;
         syncReport.UpdatedCount = updatedCount;
 
         //Step 4) Save report

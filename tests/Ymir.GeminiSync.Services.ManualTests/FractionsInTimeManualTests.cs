@@ -86,6 +86,7 @@ public class FractionsInTimeManualTests
             }
         }
 
+        syncReport.TotalCount = timelines.Count;
         syncReport.UpdatedCount = updatedCount;
 
         //Assert
