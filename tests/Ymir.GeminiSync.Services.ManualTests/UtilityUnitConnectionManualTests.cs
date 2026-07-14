@@ -56,19 +56,22 @@ public class UtilityUnitConnectionManualTests
     public async Task UptadeUtilityConnections()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\202607\\agreement_places_Spann_20260702.json";
-        const string agreementExemptionsFilePath = "E:\\Temp\\Ymir\\202607\\agreement_exemptions_Spann_20260702.json";
+        const string basePath = "E:\\Temp\\Ymir\\20260706\\utility_unit_places_20260707";
+
+        const string filePath = "agreement_places_Nedgravd privat_20260707.json";
+        const string agreementExemptionsFilePath = "agreement_exemptions_Nedgravd privat_20260707.json";
+
         const int testCustomerId = 2;
-        const string placeTypes = "Sekk i spann";
+        const string placeTypes = "Nedgravd privat";
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
-        var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(filePath);
+        var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(Path.Join(basePath, filePath));
         _agreementPlacesRepository
             .GetUtilityUnitConnections(Arg.Any<int>(), Arg.Any<string>())
             .Returns(Task.FromResult(connectionLines));
 
-        var exemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(agreementExemptionsFilePath);
+        var exemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(Path.Join(basePath, agreementExemptionsFilePath));
         _agreementExcemptionsRepository
             .GetAllAgreementExcemptions(Arg.Any<int>())
             .Returns(Task.FromResult(exemptions));
