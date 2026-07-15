@@ -15,11 +15,6 @@ var entityOption = new Option<string?>("--entities")
     Description = "The entities to import/sync/delete."
 };
 
-var deleteOption = new Option<bool>("--delete")
-{
-    Description = "Delete the selected entity data before processing."
-};
-
 var customerIdOption = new Option<int?>("--customer-id")
 {
     Description = "Customer id to process."
@@ -75,7 +70,6 @@ RootCommand CreateRootCommand()
     return new RootCommand("GeminiSync importer")
     {
         entityOption,
-        deleteOption,
         customerIdOption,
         placeTypesOption,
         useFileCache
@@ -91,7 +85,6 @@ SyncOptions BuildImporterOptions(IConfiguration configuration, ParseResult parse
     return new SyncOptions
     {
         Entities = parseResult.GetValue(entityOption) ?? configuredOptions.Entities,
-        Delete = parseResult.GetValue(deleteOption) || configuredOptions.Delete,
         CustomerId = parseResult.GetValue(customerIdOption) ?? configuredOptions.CustomerId,
         PlaceTypes = parseResult.GetValue(placeTypesOption) ?? configuredOptions.PlaceTypes,
         UseFileCache = parseResult.GetValue(useFileCache) || configuredOptions.UseFileCache,
