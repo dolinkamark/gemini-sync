@@ -31,6 +31,8 @@ BEGIN
     INNER JOIN dbo.PlaceType AS pt
         ON pt.PlaceTypeId = ppt.PlaceTypeId
        AND pt.CustomerId = ppt.CustomerId
-    WHERE ap.CustomerId = @CustomerId AND pt.[Description] = @PlaceTypeDescription;
+    WHERE ap.CustomerId = @CustomerId
+       AND pt.[Description] = @PlaceTypeDescription
+       AND ap.FromDate <= GETDATE()
 END;
 GO
