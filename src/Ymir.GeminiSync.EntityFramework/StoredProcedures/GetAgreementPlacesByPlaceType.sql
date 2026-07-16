@@ -9,6 +9,8 @@ BEGIN
           ,a.[ExternalAgreementId]
           ,ap.[AgreementId]
           ,ap.[PlaceNr]
+          ,a.[Type] AS AgreementType
+          ,a.[GnrBnrFnrSnr]
           ,a.[NrOfOccupancyUnits]
           ,ap.[FromDate]
           ,ap.[ToDate]

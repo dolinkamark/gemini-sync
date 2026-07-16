@@ -8,6 +8,10 @@ public class AgreementPlaceConnectionLine
 
     public string ExternalAgreementId { get; set; }
 
+    public string AgreementType { get; set; }
+
+    public string GnrBnrFnrSnr { get; set; }
+
     public string Bid { get; set; }
 
     public int? NrOfOccupancyUnits { get; set; }

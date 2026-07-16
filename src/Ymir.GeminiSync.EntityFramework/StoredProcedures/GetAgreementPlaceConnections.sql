@@ -9,6 +9,8 @@ BEGIN
         ap.[CustomerId],
         ap.[AgreementId],
         a.[ExternalAgreementId],
+        a.[Type] AS AgreementType,
+        a.[GnrBnrFnrSnr],
         a.[Bid],
         a.[NrOfOccupancyUnits],
         ap.[PlaceNr],

@@ -10,6 +10,10 @@ public class AgreementPlaceHistoryLine
 
     public string ExternalAgreementId { get; set; }
 
+    public string AgreementType { get; set; }
+
+    public string GnrBnrFnrSnr { get; set; }
+
     public int? NrOfOccupancyUnits { get; set; }
 
     public DateTime FromDate { get; set; }
