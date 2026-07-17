@@ -9,4 +9,6 @@ public interface IUtilityConnectionsService
         List<AgreementPlaceConnectionLine> connectionLines,
         List<AgreementExcemption> exemptions
     );
+
+    bool AreTimelinesEqual(List<ConnectionTimelineDto> firstTimeline, List<ConnectionTimelineDto> secondTimeline);
 }

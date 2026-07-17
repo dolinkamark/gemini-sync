@@ -78,11 +78,11 @@ public class SyncWorker(
             if (options.Entities.Contains(EntityTypes.UtilityConnections))
             {
                 //Step 1.b) Verify if the utility connections are correct
-                var agreementPlaces = await agreementPlacesRepository.GetUtilityUnitConnections(customerId, placeTypes);
+                var agreementPlaces = await agreementPlacesRepository.GetAllUtilityUnitConnections(customerId);
                 if (options.UseFileCache)
                 {
                     Console.WriteLine("Saving agreement places");
-                    File.WriteAllText($"Cache/agreement_places_{placeTypes}_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(agreementPlaces));
+                    File.WriteAllText($"Cache/agreement_places_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(agreementPlaces));
                 }
 
                 //Verify download exemptions
@@ -90,7 +90,7 @@ public class SyncWorker(
                 if (options.UseFileCache)
                 {
                     Console.WriteLine("Saving agreement exemptions");
-                    File.WriteAllText($"Cache/agreement_exemptions_{placeTypes}_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(exemptions));
+                    File.WriteAllText($"Cache/agreement_exemptions_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(exemptions));
                 }
             }
         }

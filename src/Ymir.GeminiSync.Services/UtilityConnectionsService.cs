@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.Linq;
 using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Services.Abstract;
 using Ymir.GeminiSync.Services.Models;
@@ -65,7 +64,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             .Distinct()
             .ToList();
 
-        foreach(var currentBid in buildingsWithUnevenDistribution)
+        foreach (var currentBid in buildingsWithUnevenDistribution)
         {
             var relatedAgreements = connectionLines
                 .Where(l => l.Bid == currentBid)
@@ -79,7 +78,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
             closedAgreements.ForEach(a => a.NrOfOccupancyUnits = 0);
 
-            if(openAgreements.Count > 0)
+            if (openAgreements.Count > 0)
             {
                 openAgreements[0].NrOfOccupancyUnits = totalUnitCount;
                 for (int i = 1; i < openAgreements.Count; ++i)
@@ -92,9 +91,20 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
         //Data quality validation
         var timelineErrors = new List<(long, DateTime?, DateTime?)>();
 
+        var multiplePlaces = agreementGroups
+            .Where(g => g.GroupBy(l => l.PlaceType).Count() > 1)
+            .Select(s => s.Key)
+            .ToList();
+
+        var multipleOpenTimelines = agreementGroups
+            .Where(g => g.Count(l => l.ToDate == null) > 1)
+            .Select(s => s.Key)
+            .ToList();
+
         foreach (var agreementGroup in agreementGroups)
         {
-            if (hasUnevenUnitDistribution.Contains(agreementGroup.Key)) continue;
+            if (multiplePlaces.Contains(agreementGroup.Key)) continue;
+            if (multipleOpenTimelines.Contains(agreementGroup.Key)) continue;
 
             var timelines = new List<ConnectionTimelineDto>();
             var currentLines = agreementGroup
@@ -105,26 +115,25 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 .Where(e => e.AgreementId == agreementGroup.Key && e.ToDate == null)
                 .ToList();
 
-            //Closed intervals
-            for (int i = 0; i < currentLines.Count - 1; i++)
-            {
-                var (fromDate, toDate) = GetFromToDates(currentLines[i], currentLines[i + 1]);
+            var splitTimeline = SplitTimeline(currentLines);
 
-                var dataQualityError = CheckDataQualityError(currentLines[i]);
-                if (dataQualityError != null)
-                {
-                    timelineErrors.Add(dataQualityError.Value);
-                }
+            if (splitTimeline.Count == 1) continue;
+
+            foreach (var split in splitTimeline)
+            {
+                var firstLine = split.Connections.First();
+                var placeList = split.Connections.Select(c => c.PlaceType).ToList();
+                var totalUnits = split.Connections.Sum(c => c.NrOfOccupancyUnits);
 
                 timelines.Add(new ConnectionTimelineDto
                 {
-                    AgreementId = Int32.Parse(currentLines[i].ExternalAgreementId),
-                    IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(currentLines[i].PlaceType),
-                    IsConnectedToPublicContainer = IsPublicContainer(currentLines[i].PlaceType),
-                    IncludedUtilityUnitsCount = currentLines[i].NrOfOccupancyUnits,
-                    DateFrom = fromDate,
-                    DateTo = toDate,
-                    UtilityUnitConnectionType = GetUtilitytype(currentLines[i].BuildingType),
+                    AgreementId = Int32.Parse(firstLine.ExternalAgreementId),
+                    IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(placeList),
+                    IsConnectedToPublicContainer = IsPublicContainer(placeList),
+                    IncludedUtilityUnitsCount = totalUnits,
+                    DateFrom = split.StartDate.AddHours(12),
+                    DateTo = split.ToDate?.AddHours(12),
+                    UtilityUnitConnectionType = GetUtilitytype(firstLine.BuildingType),
                 });
             }
 
@@ -139,19 +148,10 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 compostType = CompostType.Food;
             }
 
-            var lastInterval = currentLines[^1];
-
-            timelines.Add(new ConnectionTimelineDto
+            if(timelines.Count > 0)
             {
-                AgreementId = Int32.Parse(lastInterval.ExternalAgreementId),
-                IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(lastInterval.PlaceType),
-                IsConnectedToPublicContainer = IsPublicContainer(lastInterval.PlaceType),
-                IncludedUtilityUnitsCount = lastInterval.NrOfOccupancyUnits,
-                DateFrom = lastInterval.FromDate.AddHours(12),
-                DateTo = lastInterval.ToDate?.AddHours(12),
-                CompostType = compostType,
-                UtilityUnitConnectionType = GetUtilitytype(lastInterval.BuildingType),
-            });
+                timelines[timelines.Count - 1].CompostType = compostType;
+            }
 
             utilityUnitTimelines.Add((
                 agreementGroup.Key,
@@ -165,7 +165,97 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
         return utilityUnitTimelines;
     }
 
+    /// <summary>
+    /// Checks whether the returned timeline from Gemini API equals the update timeline.
+    /// </summary>
+    public bool AreTimelinesEqual(List<ConnectionTimelineDto> firstTimeline, List<ConnectionTimelineDto> secondTimeline)
+    {
+        if (firstTimeline.Count != secondTimeline.Count) return false;
+
+        return firstTimeline.SequenceEqual(secondTimeline);
+    }
+
     #region Private Helpers
+
+    private List<ConnectionTimelinePeriod> SplitTimeline(IEnumerable<AgreementPlaceConnectionLine> connectionLines)
+    {
+        ArgumentNullException.ThrowIfNull(connectionLines);
+
+        // Materializing the input ensures that the same object instances are
+        // referenced from the generated periods.
+        var connectionList = connectionLines.ToList();
+
+        if (connectionList.Count == 0)
+        {
+            return new List<ConnectionTimelinePeriod>();
+        }
+
+        AdjustConnectionDates(connectionList);
+
+        var boundaries = connectionList
+            .SelectMany(connection =>
+            {
+                var dates = new List<DateTime>
+                {
+                    connection.FromDate
+                };
+
+                if (connection.ToDate.HasValue)
+                {
+                    dates.Add(connection.ToDate.Value);
+                }
+
+                return dates;
+            })
+            .Distinct()
+            .OrderBy(date => date)
+            .ToList();
+
+        var result = new List<ConnectionTimelinePeriod>();
+
+        for (var index = 0; index < boundaries.Count; index++)
+        {
+            var startDate = boundaries[index];
+
+            DateTime? toDate = index + 1 < boundaries.Count
+                ? boundaries[index + 1]
+                : null;
+
+            var activeConnections = connectionList
+                .Where(connection =>
+                    connection.FromDate <= startDate &&
+                    (!connection.ToDate.HasValue ||
+                     connection.ToDate.Value > startDate))
+                .ToList();
+
+            // Do not generate periods during which no connection is active.
+            if (activeConnections.Count == 0)
+            {
+                continue;
+            }
+
+            result.Add(new ConnectionTimelinePeriod
+            {
+                StartDate = startDate,
+                ToDate = toDate,
+                Connections = activeConnections
+            });
+        }
+
+        return result;
+    }
+
+    private void AdjustConnectionDates(List<AgreementPlaceConnectionLine> connections)
+    {
+        foreach (var connection in connections)
+        {
+            if (connection.ToDate.HasValue &&
+                connection.ToDate.Value <= connection.FromDate)
+            {
+                connection.FromDate = connection.ToDate.Value.Date.AddDays(-1);
+            }
+        }
+    }
 
     private (long, DateTime?, DateTime?)? CheckDataQualityError(AgreementPlaceConnectionLine currentLine)
     {
@@ -187,7 +277,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             toDate = nextLine.FromDate.AddDays(-1);
         }
 
-        if(fromDate >= toDate?.Date)
+        if (fromDate >= toDate?.Date)
         {
             fromDate = toDate?.AddDays(-1) ?? fromDate;
         }
@@ -202,11 +292,29 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             .Contains(placeType.ToLower());
     }
 
+    private bool IsConnectedToGarbagePickupSystem(List<string> placeTypes)
+    {
+        var notConnected = options.Value.NotConnectedToPickupSystem
+            .Select(n => n.ToLower())
+            .ToList();
+
+        return placeTypes.Any(p => !notConnected.Contains(p.ToLower()));
+    }
+
     private bool IsPublicContainer(string placeType)
     {
         return options.Value.PublicContainerNames
             .Select(p => p.ToLower())
             .Contains(placeType.ToLower());
+    }
+
+    private bool IsPublicContainer(List<string> placeTypes)
+    {
+        var publicContainerList = options.Value.PublicContainerNames
+            .Select(n => n.ToLower())
+            .ToList();
+
+        return placeTypes.Any(p => publicContainerList.Contains(p.ToLower()));
     }
 
     private UtilityUnitConnectionType GetUtilitytype(string buildingType)
