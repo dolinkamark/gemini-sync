@@ -24,7 +24,7 @@ namespace Ymir.GeminiSync.Services.ManualTests
                 .Returns(_ => new HttpClient());
         }
 
-        [Fact]
+        [Fact(Skip = "Manual test only")]
         public async Task UpdatePrivateContainerFractionsInTime()
         {
             //Arrange

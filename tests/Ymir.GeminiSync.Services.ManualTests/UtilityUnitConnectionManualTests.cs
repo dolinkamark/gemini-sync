@@ -52,14 +52,54 @@ public class UtilityUnitConnectionManualTests
         _utilityConnectionService =  new UtilityConnectionsService(_serviceOptions);
     }
 
-    [Fact]
-    public async Task UptadeUtilityConnections()
+    [Fact(Skip = "Manual test only")]
+    public async Task UptadeAllUtilityConnections()
     {
         //Arrange
-        const string basePath = "E:\\Temp\\Ymir\\20260706\\utility_unit_places_20260707";
+        const string basePath = "E:\\Temp\\Ymir\\utility_unit_connections_all_20260716";
 
-        const string filePath = "agreement_places_Nedgravd privat_20260707.json";
-        const string agreementExemptionsFilePath = "agreement_exemptions_Nedgravd privat_20260707.json";
+        const string filePath = "agreement_places_20260716.json";
+        const string agreementExemptionsFilePath = "agreement_exemptions_20260716.json";
+
+        const int testCustomerId = 2;
+
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+
+        var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(Path.Join(basePath, filePath));
+        var filteredLines = connectionLines.Where(l => l.GnrBnrFnrSnr == "7.843.0.0").ToList();
+
+        _agreementPlacesRepository
+            .GetAllUtilityUnitConnections(Arg.Any<int>())
+            .Returns(Task.FromResult(filteredLines));
+
+        var exemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(Path.Join(basePath, agreementExemptionsFilePath));
+        _agreementExcemptionsRepository
+            .GetAllAgreementExcemptions(Arg.Any<int>())
+            .Returns(Task.FromResult(exemptions));
+
+        var utilitySyncService = new UtilityConnectionsSyncService(
+            _agreementPlacesRepository,
+            _agreementExcemptionsRepository,
+            _utilityConnectionService,
+            _syncReportRepository,
+            testGeminiClient
+        );
+
+        //Act
+        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(testCustomerId, true);
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
+    [Fact(Skip = "Manual test only")]
+    public async Task UptadeUtilityConnectionsByPlace()
+    {
+        //Arrange
+        const string basePath = "E:\\Temp\\Ymir\\utility_unit_connections_all_20260716";
+
+        const string filePath = "agreement_places_20260716.json";
+        const string agreementExemptionsFilePath = "agreement_exemptions_20260716.json";
 
         const int testCustomerId = 2;
         const string placeTypes = "Nedgravd privat";

@@ -26,7 +26,7 @@ public class FractionsInTimeManualTests
             .Returns(_ => new HttpClient());
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task UpdateFractionsInTime()
     {
         //Arrange

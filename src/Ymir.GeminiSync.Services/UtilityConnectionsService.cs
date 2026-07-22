@@ -103,9 +103,6 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
         foreach (var agreementGroup in agreementGroups)
         {
-            if (multiplePlaces.Contains(agreementGroup.Key)) continue;
-            if (multipleOpenTimelines.Contains(agreementGroup.Key)) continue;
-
             var timelines = new List<ConnectionTimelineDto>();
             var currentLines = agreementGroup
                 .OrderBy(l => l.FromDate)
@@ -116,8 +113,6 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
                 .ToList();
 
             var splitTimeline = SplitTimeline(currentLines);
-
-            if (splitTimeline.Count == 1) continue;
 
             foreach (var split in splitTimeline)
             {
@@ -177,7 +172,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
     #region Private Helpers
 
-    private List<ConnectionTimelinePeriod> SplitTimeline(IEnumerable<AgreementPlaceConnectionLine> connectionLines)
+    private List<ConnectionTimelinePeriod> SplitTimeline(List<AgreementPlaceConnectionLine> connectionLines)
     {
         ArgumentNullException.ThrowIfNull(connectionLines);
 
@@ -217,8 +212,10 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
         {
             var startDate = boundaries[index];
 
+            // The end date is inclusive, so it is one day before
+            // the start date of the following period.
             DateTime? toDate = index + 1 < boundaries.Count
-                ? boundaries[index + 1]
+                ? boundaries[index + 1].AddDays(-1)
                 : null;
 
             var activeConnections = connectionList
