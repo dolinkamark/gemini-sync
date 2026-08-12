@@ -22,6 +22,8 @@ public class Integration
 
     public int? Status { get; set; }
 
+    public bool Executable { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     [StringLength(50)]

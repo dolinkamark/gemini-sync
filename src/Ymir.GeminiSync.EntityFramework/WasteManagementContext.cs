@@ -15,6 +15,8 @@ public class WasteManagementContext : DbContext
 
     public DbSet<Integration> Integrations { get; set; }
 
+    public DbSet<IntegrationExecution> IntegrationExecutions { get; set; }
+
     public DbSet<AgreementExcemption> AgreementExcemptions { get; set; }
 
     public DbSet<GarbageBinCollectionLine> GarbageBinCollections { get; set; }
