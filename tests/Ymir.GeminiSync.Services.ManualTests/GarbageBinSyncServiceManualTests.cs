@@ -62,4 +62,37 @@ public class GarbageBinSyncServiceManualTests
         //Assert
         Assert.Fail("Manual test only");
     }
+
+    [Fact(Skip = "Manual test only")]
+    public async Task CleanGarbageBinCollections()
+    {
+        //Arrange
+        const string filePath = "E:\\Temp\\Ymir_Compare\\Spann_diff_customerid2_1.json";
+
+        var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
+        var placeNrList = collectionLines
+            .Select(l => l.PlaceNr)
+            .Distinct()
+            .ToList();
+
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+
+        //Act
+        int updateCount = 0;
+
+        foreach(var placeNr in placeNrList)
+        {
+            if(placeNr != null)
+            {
+                var isSuccessful = await testGeminiClient.DeleteGarbageBinCollection(placeNr.Value);
+                if (isSuccessful)
+                {
+                    updateCount++;
+                }
+            }
+        }
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
 }

@@ -43,29 +43,35 @@ public class UtilityConnectionsSyncService(
 
             try
             {
+                bool shouldUpdate = true;
                 if (checkDifference)
                 {
                     var utilityUnitTimeline = await geminiClient.GetUtilityConnectionTimeline(timeline.agreementId);
-                    if(!utilityConnectionService.AreTimelinesEqual(utilityUnitTimeline, timeline.updateDto.ConnectionsInTime))
+                    if (utilityConnectionService.AreTimelinesEqual(utilityUnitTimeline, timeline.updateDto.ConnectionsInTime))
                     {
-                        var isSuccessful = await geminiClient.UpdateUtilityConnectionTimeline(timeline.agreementId, timeline.updateDto);
-
-                        if (isSuccessful)
-                        {
-                            updateCount++;
-                        }
-                        else
-                        {
-                            syncReport.Errors.Add(new SyncError
-                            {
-                                AgreementId = timeline.agreementId,
-                                Description = $"Update failed for dto: {JsonSerializer.Serialize(timeline)}"
-                            });
-                        }
+                        shouldUpdate = false;
                     }
-
-                    checkedCount++;
                 }
+
+                if(shouldUpdate)
+                {
+                    var isSuccessful = await geminiClient.UpdateUtilityConnectionTimeline(timeline.agreementId, timeline.updateDto);
+
+                    if (isSuccessful)
+                    {
+                        updateCount++;
+                    }
+                    else
+                    {
+                        syncReport.Errors.Add(new SyncError
+                        {
+                            AgreementId = timeline.agreementId,
+                            Description = $"Update failed for dto: {JsonSerializer.Serialize(timeline)}"
+                        });
+                    }
+                }
+
+                checkedCount++;
             }
             catch (Exception ex)
             {

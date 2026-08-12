@@ -10,7 +10,7 @@ public class GarbageBinSyncService(
     ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IGarbageBinSyncService
 {
-    public async Task<SyncReport> SyncGarbageBinCollections(int customerId, string placeTypeDescription)
+    public async Task<SyncReport> SyncGarbageBinCollections(int customerId, string placeTypeDescription, bool checkDifference = false)
     {
         var syncReport = new SyncReport();
 
@@ -30,10 +30,19 @@ public class GarbageBinSyncService(
 
             try
             {
-                if (stateInTime.StateInTime.Count > 0)
+                bool shouldUpdate = true;
+                if (checkDifference)
+                {
+                    var currentStateInTime = await geminiClient.GetGarbageBinCollection(garbageBinId);
+                    if (garbageBinService.AreGarbageBinStateInTimesEqual(currentStateInTime, stateInTime.StateInTime))
+                    {
+                        shouldUpdate = false;
+                    }
+                }
+
+                if(shouldUpdate)
                 {
                     var isSuccessful = await geminiClient.UpdateGarbageBinCollection(stateInTime);
-
                     if (!isSuccessful)
                     {
                         syncReport.Errors.Add(new SyncError

@@ -25,6 +25,11 @@ public class UtilityUnitConnectionManualTests
     {
         PublicContainerNames = new List<string> { "Bruksdel nedgravd", "Hyttecontainer" },
         NotConnectedToPickupSystem = new List<string> { "Hyttecontainer" },
+        ExemptionMaps = new List<ExemptionMap>
+        { 
+            new ExemptionMap { Id = 6, CompostType = CompostType.Food, },
+            new ExemptionMap { Id = 7, CompostType = CompostType.GardenAndFood, },
+        }
     };
 
     private readonly GeminiSettings _settings = new GeminiSettings

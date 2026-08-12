@@ -8,4 +8,6 @@ public interface IGarbageBinService
     List<GarbageBinsStateInTimeDto> CreateGarbageBinsStateInTimeList(List<GarbageBinCollectionLine> collectionLines, string placeType);
 
     List<StateInTimeCollection> CreateStateInTimeCollections(List<GarbageBinCollectionLine> lines);
+
+    bool AreGarbageBinStateInTimesEqual(List<GarbageBinsCollectionDto> firstStateInTime, List<GarbageBinsCollectionDto> secondStateInTime);
 }

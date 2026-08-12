@@ -26,7 +26,7 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             .ToList();
 
         var relatedExemptions = exemptions
-            .Where(e => e.ExcemptionType == 2 || e.ExcemptionType == 4)
+            .Where(e => options.Value.ExemptionMaps.Any(m => m.Id == e.ExcemptionType))
             .ToList();
 
         //Adjust occupancy by the bid grouping
@@ -134,11 +134,19 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
             //Last interval
             CompostType? compostType = null;
-            if (agreementExemptions.Any(e => e.ExcemptionType == 4))
+
+            var gardenExemptionMaps = options.Value.ExemptionMaps
+                .Where(e => e.CompostType == CompostType.GardenAndFood)
+                .ToList();
+            var foodExemptionMaps = options.Value.ExemptionMaps
+                .Where(e => e.CompostType == CompostType.Food)
+                .ToList();
+
+            if (agreementExemptions.Any(e => gardenExemptionMaps.Any(m => m.Id == e.ExcemptionType)))
             {
                 compostType = CompostType.GardenAndFood;
             }
-            else if (agreementExemptions.Any(e => e.ExcemptionType == 2))
+            else if (agreementExemptions.Any(e => foodExemptionMaps.Any(m => m.Id == e.ExcemptionType)))
             {
                 compostType = CompostType.Food;
             }
@@ -254,41 +262,6 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
         }
     }
 
-    private (long, DateTime?, DateTime?)? CheckDataQualityError(AgreementPlaceConnectionLine currentLine)
-    {
-        if (currentLine.FromDate == currentLine.ToDate)
-        {
-            return (currentLine.AgreementId, currentLine.FromDate, currentLine.ToDate);
-        }
-
-        return null;
-    }
-
-    private (DateTime fromDate, DateTime? toDate) GetFromToDates(AgreementPlaceConnectionLine currentLine, AgreementPlaceConnectionLine nextLine)
-    {
-        DateTime fromDate = currentLine.FromDate;
-        DateTime? toDate = currentLine.ToDate;
-
-        if (currentLine.ToDate == null || currentLine.ToDate?.Date >= nextLine.FromDate)
-        {
-            toDate = nextLine.FromDate.AddDays(-1);
-        }
-
-        if (fromDate >= toDate?.Date)
-        {
-            fromDate = toDate?.AddDays(-1) ?? fromDate;
-        }
-
-        return (fromDate.AddHours(12), toDate?.AddHours(12));
-    }
-
-    private bool IsConnectedToGarbagePickupSystem(string placeType)
-    {
-        return !options.Value.NotConnectedToPickupSystem
-            .Select(n => n.ToLower())
-            .Contains(placeType.ToLower());
-    }
-
     private bool IsConnectedToGarbagePickupSystem(List<string> placeTypes)
     {
         var notConnected = options.Value.NotConnectedToPickupSystem
@@ -296,13 +269,6 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             .ToList();
 
         return placeTypes.Any(p => !notConnected.Contains(p.ToLower()));
-    }
-
-    private bool IsPublicContainer(string placeType)
-    {
-        return options.Value.PublicContainerNames
-            .Select(p => p.ToLower())
-            .Contains(placeType.ToLower());
     }
 
     private bool IsPublicContainer(List<string> placeTypes)

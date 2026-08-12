@@ -159,6 +159,11 @@ public class GarbageBinService : IGarbageBinService
         return stateInTimeCollection;
     }
 
+    public bool AreGarbageBinStateInTimesEqual(List<GarbageBinsCollectionDto> firstStateInTime, List<GarbageBinsCollectionDto> secondStateInTime)
+    {
+        return firstStateInTime.SequenceEqual(secondStateInTime);
+    }
+
     #region Private Helpers
 
     private void ApplyEvent(
