@@ -4,8 +4,8 @@ import requests
 from pathlib import Path
 from typing import Optional, Tuple, List, Any, Dict
 
-CSV_PATH = r"E:\Temp\Ymir_sync\Stavanger_Testdata.csv"
-OUTPUT_SQL_PATH = r"E:\Temp\Ymir_sync\update_external_agreement.sql"
+CSV_PATH = r"E:\Temp\Ymir_Sync\Stavanger_Testdata.csv"
+OUTPUT_SQL_PATH = r"E:\Temp\Ymir_Sync\update_external_agreement.sql"
 
 API_BASE_URL = (
     "https://powelqapfpublicapi.azure-api.net/public/invoicing/api/agreements/search"
