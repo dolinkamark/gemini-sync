@@ -61,12 +61,12 @@ public class UtilityUnitConnectionManualTests
     public async Task UptadeAllUtilityConnections()
     {
         //Arrange
-        const string basePath = "E:\\Temp\\Ymir\\utility_unit_connections_all_20260716";
+        const string basePath = "E:\\Temp\\Ymir_Compare\\UtilityConnections";
 
-        const string filePath = "agreement_places_20260716.json";
-        const string agreementExemptionsFilePath = "agreement_exemptions_20260716.json";
+        const string filePath = "agreement_places_20260810.json";
+        const string agreementExemptionsFilePath = "agreement_exemptions_20260810.json";
 
-        const int testCustomerId = 2;
+        const int testCustomerId = 1;
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 

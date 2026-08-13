@@ -12,4 +12,6 @@ public class SyncOptions
     public string PlaceTypes { get; set; }
 
     public bool UseFileCache { get; set; }
+
+    public bool DisableCache { get; set; }
 }

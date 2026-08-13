@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Serilog;
 using System.CommandLine;
+using Ymir.GeminiSync.Common;
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.EntityFramework;
 using Ymir.GeminiSync.EntityFramework.Repositories;
@@ -30,6 +31,11 @@ var useFileCache = new Option<bool>("--use-file-cache")
     Description = "Flag whether to cache results for testing."
 };
 
+var disableSync = new Option<bool>("--disable-sync")
+{
+    Description = "Disables syncing, useful when you only want to create the cache files."
+};
+
 var rootCommand = CreateRootCommand();
 var parseResult = rootCommand.Parse(args);
 
@@ -54,10 +60,22 @@ builder.Services.AddDbContext<WasteManagementContext>(options =>
 
 builder.Services.AddSingleton(Options.Create(importerOptions));
 
-builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();
 builder.Services.AddTransient<IAgreementExcemptionRepository, AgreementExcemptionRepository>();
 builder.Services.AddTransient<IAgreementPlacesRepository, AgreementPlacesRepository>();
+
+//Garbage bins
+builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();
 builder.Services.AddTransient<IGarbageBinService, GarbageBinService>();
+builder.Services.AddTransient<IGarbageBinSyncService, GarbageBinSyncService>();
+
+//Fractions
+
+
+//Utility unit connections
+
+
+builder.Services.AddTransient<ISyncReportRepository, SyncReportFileRepository>();
+
 builder.Services.AddHostedService<SyncWorker>();
 
 var host = builder.Build();
@@ -72,7 +90,8 @@ RootCommand CreateRootCommand()
         entityOption,
         customerIdOption,
         placeTypesOption,
-        useFileCache
+        useFileCache,
+        disableSync
     };
 }
 
@@ -88,5 +107,6 @@ SyncOptions BuildImporterOptions(IConfiguration configuration, ParseResult parse
         CustomerId = parseResult.GetValue(customerIdOption) ?? configuredOptions.CustomerId,
         PlaceTypes = parseResult.GetValue(placeTypesOption) ?? configuredOptions.PlaceTypes,
         UseFileCache = parseResult.GetValue(useFileCache) || configuredOptions.UseFileCache,
+        DisableCache = parseResult.GetValue(disableSync) || configuredOptions.DisableCache,
     };
 }

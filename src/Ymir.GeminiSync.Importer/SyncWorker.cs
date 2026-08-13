@@ -23,6 +23,7 @@ public class SyncWorker(
             var options = syncOptions.Value;
             var customerId = options.CustomerId;
             var placeTypes = options.PlaceTypes;
+            var disableSync = options.DisableCache;
             var cacheFolder = "Cache";
 
             //Step 1) Verify if the collections are correct
@@ -44,35 +45,40 @@ public class SyncWorker(
 
                     if (options.UseFileCache)
                     {
-                        Console.WriteLine("Saving garbage bins to cache");
+                        logger.LogInformation("Saving garbage bins to cache");
                         File.WriteAllText(
-                            $"Cache/garbage_bins_{placeType}_{DateTime.Now.ToString("yyyyMMdd")}.json",
+                            $"Cache/garbage_bins_{placeType.Replace(" ", "_")}_{DateTime.Now.ToString("yyyyMMdd")}.json",
                             JsonSerializer.Serialize(garbageBins)
                         );
                     }
 
-                    Console.WriteLine($"Total bins returned for type {placeType}: {garbageBins.Count}");
+                    logger.LogInformation("Total bins returned for type {PlaceType}: {Count}", placeType, garbageBins.Count);
 
                     var groupedBins = collectionService.CreateStateInTimeCollections(garbageBins);
 
-                    Console.WriteLine($"Grouped bin count for type {placeType} (state of time): {garbageBins.Count}");
+                    logger.LogInformation("Grouped bin count for type {PlaceType} (state of time): {Count}", placeType, garbageBins.Count);
                 }
             }
 
             if (options.Entities.Contains(EntityTypes.Fractions))
             {
-                var agreementPlaces = await agreementPlacesRepository.GetFractionsHistory(customerId, placeTypes);
+                var placeTypeList = placeTypes.Split(",");
 
-                if (options.UseFileCache)
+                foreach (var placeType in placeTypeList)
                 {
-                    Console.WriteLine("Saving agreement history lines to cache");
-                    File.WriteAllText(
-                        $"Cache/agreement_place_history_lines_{placeTypes}_{DateTime.Now.ToString("yyyyMMdd")}.json",
-                        JsonSerializer.Serialize(agreementPlaces)
-                    );
-                }
+                    var agreementPlaces = await agreementPlacesRepository.GetFractionsHistory(customerId, placeType);
 
-                Console.WriteLine($"Total agreement history lines returned for place type {placeTypes}: {agreementPlaces.Count}");
+                    if (options.UseFileCache)
+                    {
+                        logger.LogInformation("Saving agreement history lines to cache");
+                        File.WriteAllText(
+                            $"Cache/agreement_place_history_lines_{placeType.Replace(" ", "_")}_{DateTime.Now.ToString("yyyyMMdd")}.json",
+                            JsonSerializer.Serialize(agreementPlaces)
+                        );
+                    }
+
+                    logger.LogInformation("Total agreement history lines returned for place type {PlaceType}: {Count}", placeType, agreementPlaces.Count);
+                }
             }
 
             if (options.Entities.Contains(EntityTypes.UtilityConnections))
@@ -81,7 +87,7 @@ public class SyncWorker(
                 var agreementPlaces = await agreementPlacesRepository.GetAllUtilityUnitConnections(customerId);
                 if (options.UseFileCache)
                 {
-                    Console.WriteLine("Saving agreement places");
+                    logger.LogInformation("Saving agreement places");
                     File.WriteAllText($"Cache/agreement_places_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(agreementPlaces));
                 }
 
@@ -89,7 +95,7 @@ public class SyncWorker(
                 var exemptions = await agreementExcemptionRepository.GetAllAgreementExcemptions(customerId);
                 if (options.UseFileCache)
                 {
-                    Console.WriteLine("Saving agreement exemptions");
+                    logger.LogInformation("Saving agreement exemptions");
                     File.WriteAllText($"Cache/agreement_exemptions_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(exemptions));
                 }
             }

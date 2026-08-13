@@ -16,9 +16,9 @@ public class GarbageBinSyncServiceManualTests
 
     private readonly GeminiSettings _settings = new GeminiSettings
     {
-        BaseUrl = "https://powelqapfpublicapi.azure-api.net/public",
-        MunicipalityNo = "stavangerkundetest",
-        SubscriptionKey = "3d8d028ee9be4cc9a9e4ac0a92068966"
+        BaseUrl = "https://pfpublicapi.geminisuite.com/public",
+        MunicipalityNo = "stavanger",
+        SubscriptionKey = "f714fceb470744ffa6017cfb050ffcbb"
     };
 
     private readonly SyncReportOptions _reportOptions = new SyncReportOptions
@@ -37,14 +37,15 @@ public class GarbageBinSyncServiceManualTests
     }
 
     [Fact(Skip = "Manual test only")]
-    public async Task SyncGarbageBinCollections_HasFiles()
+    public async Task SyncGarbageBinCollections()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir\\20260706\\garbage_bins_Spann_20260706.json";
-        const int customerId = 2;
+        const string filePath = "E:\\Temp\\Ymir_Sync\\garbage_bins_20260813_01\\garbage_bins_Spann_20260813.json";
+        const int customerId = 1;
         const string placeType = "Spann";
 
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
+
         var garbageBinRepository = Substitute.For<IGarbageBinCollectionRepository>();
         garbageBinRepository.GetGarbageBinCollections(Arg.Any<int>(), Arg.Any<string>())
             .Returns(Task.FromResult(collectionLines));
@@ -67,12 +68,13 @@ public class GarbageBinSyncServiceManualTests
     public async Task CleanGarbageBinCollections()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir_Compare\\Spann_diff_customerid2_1.json";
+        const string filePath = "E:\\Temp\\Ymir_Compare\\GarbageBins\\garbage_bins_customerid1_20260806\\garbage_bins_Bruksdel nedgravd_20260806.json";
 
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var placeNrList = collectionLines
             .Select(l => l.PlaceNr)
             .Distinct()
+            .OrderBy(l => l)
             .ToList();
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
