@@ -118,14 +118,25 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             {
                 var firstLine = split.Connections.First();
                 var placeList = split.Connections.Select(c => c.PlaceType).ToList();
-                var totalUnits = split.Connections.Sum(c => c.NrOfOccupancyUnits);
+
+                int totalOccupancyUnits = 0;
+                var nonEmptyUnitCounts = split.Connections
+                    .Select(c => c.NrOfOccupancyUnits)
+                    .OfType<int>()
+                    .Where(c => c != 0)
+                    .ToList();
+
+                if(nonEmptyUnitCounts.Count > 0)
+                {
+                    totalOccupancyUnits = nonEmptyUnitCounts.First();
+                }
 
                 timelines.Add(new ConnectionTimelineDto
                 {
                     AgreementId = Int32.Parse(firstLine.ExternalAgreementId),
                     IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(placeList),
                     IsConnectedToPublicContainer = IsPublicContainer(placeList),
-                    IncludedUtilityUnitsCount = totalUnits,
+                    IncludedUtilityUnitsCount = totalOccupancyUnits,
                     DateFrom = split.StartDate.AddHours(12),
                     DateTo = split.ToDate?.AddHours(12),
                     UtilityUnitConnectionType = GetUtilitytype(firstLine.BuildingType),
