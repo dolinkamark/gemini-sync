@@ -38,8 +38,6 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
 
             if (totalUnits % currentAgreements.Count != 0)
             {
-                //unitDivisionErrors.Add((agreementGroup.Key, totalUnits, currentAgreements.Count));
-
                 unitDivisionErrors.AddRange(
                     currentAgreements.Select(c => (agreementGroupByBid.Key, c.AgreementId, c.ExternalAgreementId, c.PlaceNr, totalUnits, currentAgreements.Count))
                 );
@@ -88,92 +86,96 @@ public class UtilityConnectionsService(IOptions<UtilityConnectionsServiceOptions
             }
         }
 
-        //Data quality validation
-        var timelineErrors = new List<(long, DateTime?, DateTime?)>();
-
-        var multiplePlaces = agreementGroups
-            .Where(g => g.GroupBy(l => l.PlaceType).Count() > 1)
-            .Select(s => s.Key)
+        var gardenExemptionMaps = options.Value.ExemptionMaps
+            .Where(e => e.CompostType == CompostType.GardenAndFood)
             .ToList();
-
-        var multipleOpenTimelines = agreementGroups
-            .Where(g => g.Count(l => l.ToDate == null) > 1)
-            .Select(s => s.Key)
+        var foodExemptionMaps = options.Value.ExemptionMaps
+            .Where(e => e.CompostType == CompostType.Food)
+            .ToList();
+        var fullExemptionMaps = options.Value.ExemptionMaps
+            .Where(e => e.IsFullExemption)
             .ToList();
 
         foreach (var agreementGroup in agreementGroups)
         {
-            var timelines = new List<ConnectionTimelineDto>();
-            var currentLines = agreementGroup
-                .OrderBy(l => l.FromDate)
-                .ToList();
-
             var agreementExemptions = relatedExemptions
-                .Where(e => e.AgreementId == agreementGroup.Key && e.ToDate == null)
+                .Where(e => e.AgreementId == agreementGroup.Key && (e.ToDate == null || e.ToDate > DateTime.Now.Date.AddMonths(1)))
                 .ToList();
-
-            var splitTimeline = SplitTimeline(currentLines);
-
-            foreach (var split in splitTimeline)
+            
+            //If it has full exemption, then add an empty list
+            if(agreementExemptions.Any(e => fullExemptionMaps.Any(fe => fe.Id == e.ExcemptionType)))
             {
-                var firstLine = split.Connections.First();
-                var placeList = split.Connections.Select(c => c.PlaceType).ToList();
-
-                int totalOccupancyUnits = 0;
-                var nonEmptyUnitCounts = split.Connections
-                    .Select(c => c.NrOfOccupancyUnits)
-                    .OfType<int>()
-                    .Where(c => c != 0)
+                utilityUnitTimelines.Add((
+                    agreementGroup.Key,
+                    new UtilityUnitConnectionUpdateDto
+                    {
+                        ConnectionsInTime = new List<ConnectionTimelineDto>()
+                    })
+                );
+            }
+            else
+            {
+                var timelines = new List<ConnectionTimelineDto>();
+                var currentLines = agreementGroup
+                    .OrderBy(l => l.FromDate)
                     .ToList();
 
-                if(nonEmptyUnitCounts.Count > 0)
+                var splitTimeline = SplitTimeline(currentLines);
+
+                foreach (var split in splitTimeline)
                 {
-                    totalOccupancyUnits = nonEmptyUnitCounts.First();
+                    var firstLine = split.Connections.First();
+                    var placeList = split.Connections.Select(c => c.PlaceType).ToList();
+
+                    int totalOccupancyUnits = 0;
+                    var nonEmptyUnitCounts = split.Connections
+                        .Select(c => c.NrOfOccupancyUnits)
+                        .OfType<int>()
+                        .Where(c => c != 0)
+                        .ToList();
+
+                    if (nonEmptyUnitCounts.Count > 0)
+                    {
+                        totalOccupancyUnits = nonEmptyUnitCounts.First();
+                    }
+
+                    timelines.Add(new ConnectionTimelineDto
+                    {
+                        AgreementId = Int32.Parse(firstLine.ExternalAgreementId),
+                        IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(placeList),
+                        IsConnectedToPublicContainer = IsPublicContainer(placeList),
+                        IncludedUtilityUnitsCount = totalOccupancyUnits,
+                        DateFrom = split.StartDate.AddHours(12),
+                        DateTo = split.ToDate?.AddHours(12),
+                        UtilityUnitConnectionType = GetUtilitytype(firstLine.BuildingType),
+                    });
                 }
 
-                timelines.Add(new ConnectionTimelineDto
+                //Last interval
+                CompostType? compostType = null;
+
+                if (agreementExemptions.Any(e => gardenExemptionMaps.Any(m => m.Id == e.ExcemptionType)))
                 {
-                    AgreementId = Int32.Parse(firstLine.ExternalAgreementId),
-                    IsConnectedToGarbagePickupSystem = IsConnectedToGarbagePickupSystem(placeList),
-                    IsConnectedToPublicContainer = IsPublicContainer(placeList),
-                    IncludedUtilityUnitsCount = totalOccupancyUnits,
-                    DateFrom = split.StartDate.AddHours(12),
-                    DateTo = split.ToDate?.AddHours(12),
-                    UtilityUnitConnectionType = GetUtilitytype(firstLine.BuildingType),
-                });
-            }
-
-            //Last interval
-            CompostType? compostType = null;
-
-            var gardenExemptionMaps = options.Value.ExemptionMaps
-                .Where(e => e.CompostType == CompostType.GardenAndFood)
-                .ToList();
-            var foodExemptionMaps = options.Value.ExemptionMaps
-                .Where(e => e.CompostType == CompostType.Food)
-                .ToList();
-
-            if (agreementExemptions.Any(e => gardenExemptionMaps.Any(m => m.Id == e.ExcemptionType)))
-            {
-                compostType = CompostType.GardenAndFood;
-            }
-            else if (agreementExemptions.Any(e => foodExemptionMaps.Any(m => m.Id == e.ExcemptionType)))
-            {
-                compostType = CompostType.Food;
-            }
-
-            if(timelines.Count > 0)
-            {
-                timelines[timelines.Count - 1].CompostType = compostType;
-            }
-
-            utilityUnitTimelines.Add((
-                agreementGroup.Key,
-                new UtilityUnitConnectionUpdateDto
+                    compostType = CompostType.GardenAndFood;
+                }
+                else if (agreementExemptions.Any(e => foodExemptionMaps.Any(m => m.Id == e.ExcemptionType)))
                 {
-                    ConnectionsInTime = timelines
-                })
-            );
+                    compostType = CompostType.Food;
+                }
+
+                if (timelines.Count > 0)
+                {
+                    timelines[timelines.Count - 1].CompostType = compostType;
+                }
+
+                utilityUnitTimelines.Add((
+                    agreementGroup.Key,
+                    new UtilityUnitConnectionUpdateDto
+                    {
+                        ConnectionsInTime = timelines
+                    })
+                );
+            }
         }
 
         return utilityUnitTimelines;

@@ -41,9 +41,6 @@ public class FractionsInTimeManualTests
         var fractionService = new FractionService();
         var fractionsSyncService = new FractionsSyncService(_agreementPlacesRepository, testGeminiClient);
 
-        var testLines = placeLines.Where(p => p.PlaceNr == 1185842).ToList();
-        var testContent = JsonSerializer.Serialize(testLines);
-
         //Act
         var intervals = fractionService.BuildFractionIntervalsByDate(placeLines);
         var timelines = fractionService.CreateFractionTimelines(intervals);
@@ -51,7 +48,7 @@ public class FractionsInTimeManualTests
         var updatedCount = 0;
         var syncReport = new SyncReport();
 
-        foreach(var currentTimeline in timelines)
+        foreach (var currentTimeline in timelines)
         {
             try
             {
