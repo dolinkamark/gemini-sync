@@ -10,6 +10,7 @@ using Ymir.GeminiSync.Importer;
 using Ymir.GeminiSync.Importer.Models;
 using Ymir.GeminiSync.Services;
 using Ymir.GeminiSync.Services.Abstract;
+using GeminiSettings = Ymir.GeminiSync.Services.Settings.GeminiSettings;
 
 var entityOption = new Option<string?>("--entities")
 {
@@ -60,8 +61,14 @@ builder.Services.AddDbContext<WasteManagementContext>(options =>
 
 builder.Services.AddSingleton(Options.Create(importerOptions));
 
+var geminiSettings = builder.Configuration
+    .GetSection(nameof(GeminiSettings))
+    .Get<GeminiSettings>() ?? new GeminiSettings();
+builder.Services.AddSingleton(geminiSettings);
+
 builder.Services.AddTransient<IAgreementExcemptionRepository, AgreementExcemptionRepository>();
 builder.Services.AddTransient<IAgreementPlacesRepository, AgreementPlacesRepository>();
+builder.Services.AddTransient<IIntegrationRepository, IntegrationRepository>();
 
 //Garbage bins
 builder.Services.AddTransient<IGarbageBinCollectionRepository, GarbageBinCollectionRepository>();

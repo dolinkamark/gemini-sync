@@ -12,4 +12,13 @@ public class IntegrationRepository(WasteManagementContext dbContext) : IIntegrat
             .Where(i => i.CustomerId == customerId && i.Name == name && i.IntegrationType == integrationType)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<int> UpdateUpdatedAtAsync(int customerId, string name, string integrationType)
+    {
+        var updatedAt = DateTime.Now;
+
+        return await dbContext.Integrations
+            .Where(i => i.CustomerId == customerId && i.Name == name && i.IntegrationType == integrationType)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.UpdatedAt, updatedAt));
+    }
 }

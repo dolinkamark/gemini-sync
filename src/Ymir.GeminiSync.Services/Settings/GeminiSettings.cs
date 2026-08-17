@@ -7,4 +7,6 @@ public class GeminiSettings
     public string MunicipalityNo {  get; set; }
 
     public string SubscriptionKey { get; set; }
+
+    public GeminiIntegrationId GeminiIntegrationId { get; set; }
 }

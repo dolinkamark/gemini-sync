@@ -4,6 +4,7 @@ using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.Importer.Models;
 using Ymir.GeminiSync.Services.Abstract;
+using Ymir.GeminiSync.Services.Settings;
 
 namespace Ymir.GeminiSync.Importer;
 
@@ -14,6 +15,8 @@ public class SyncWorker(
     IAgreementExcemptionRepository agreementExcemptionRepository,
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinService collectionService,
+    IIntegrationRepository integrationRepository,
+    GeminiSettings geminiSettings,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -97,6 +100,39 @@ public class SyncWorker(
                 {
                     logger.LogInformation("Saving agreement exemptions");
                     File.WriteAllText($"Cache/agreement_exemptions_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(exemptions));
+                }
+            }
+
+            var geminiIntegrationId = geminiSettings.GeminiIntegrationId;
+            if (geminiIntegrationId is null
+                || geminiIntegrationId.CustomerId == 0
+                || string.IsNullOrWhiteSpace(geminiIntegrationId.Name)
+                || string.IsNullOrWhiteSpace(geminiIntegrationId.IntegrationType))
+            {
+                logger.LogWarning("GeminiIntegrationId is not configured; skipping Integration.UpdatedAt update.");
+            }
+            else
+            {
+                var updatedCount = await integrationRepository.UpdateUpdatedAtAsync(
+                    geminiIntegrationId.CustomerId,
+                    geminiIntegrationId.Name,
+                    geminiIntegrationId.IntegrationType);
+
+                if (updatedCount == 0)
+                {
+                    logger.LogWarning(
+                        "No Integration row found for CustomerId {CustomerId}, Name {Name}, IntegrationType {IntegrationType}.",
+                        geminiIntegrationId.CustomerId,
+                        geminiIntegrationId.Name,
+                        geminiIntegrationId.IntegrationType);
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "Updated Integration.UpdatedAt for CustomerId {CustomerId}, Name {Name}, IntegrationType {IntegrationType}.",
+                        geminiIntegrationId.CustomerId,
+                        geminiIntegrationId.Name,
+                        geminiIntegrationId.IntegrationType);
                 }
             }
         }
