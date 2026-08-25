@@ -13,16 +13,18 @@ Inputs:
 
 Output:
     - agreement_diff_update_<date>.sql: one `UPDATE Agreement ...` per line
-      followed by `GO`, only for agreements whose current ExternalAgreementId
-      differs from the Gemini one.
+      followed by `GO`, only for non-ambiguous matrikkels whose current
+      ExternalAgreementId differs from the Gemini one.
     - agreement_diff_ambiguous_<date>.csv: Gemini matrikkel ids that map to
       more than one distinct ExternalId (skipped from the SQL updates).
-    - agreement_diff_ambiguous_gemini_<date>.csv: Gemini Prod lookup for those
-      ambiguous matrikkels as matrikkel_id,agreementId,propertyId.
+    - agreement_diff_ambiguous_gemini_<date>.json: Gemini Prod lookup for those
+      ambiguous matrikkels as objects with matrikkelId, agreementId,
+      propertyId, agreementDescription and agreementText.
 """
 from __future__ import annotations
 
 import csv
+import json
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
@@ -49,6 +51,8 @@ def parse_matrikkel(value: str) -> tuple[str, str, str, str]:
 CUSTOMER_CSV = r"E:\Temp\Ymir_Compare\customer_1_agreements_with_registryid_20260825.csv"
 GEMINI_CSV = r"E:\Temp\Ymir_Compare\matrikkel_gemini_agreements_20260824.csv"
 OUTPUT_DIR = r"E:\Temp\Ymir_Compare\Sql_Updates"
+
+DOWNLOAD_AMBIGUOUS_GEMINI = False
 
 GPSLS_CUSTOMER_ID = 1
 SQL_TABLE_NAME = "Agreement"
@@ -261,80 +265,77 @@ def write_ambiguous(path: Path, ambiguous: dict[str, set[str]]) -> None:
         writer.writerows(rows)
 
 
-def records_from_gemini_payload(payload: Any) -> list[tuple[str, str]]:
-    """Return unique (agreementId, propertyId) pairs from a Gemini search payload."""
+def records_from_gemini_payload(
+    matrikkel_id: str, payload: Any
+) -> list[dict[str, Any]]:
+    """Map a Gemini search payload to agreement records for the JSON output."""
     if not isinstance(payload, list):
         return []
 
-    records: list[tuple[str, str]] = []
-    seen: set[tuple[str, str]] = set()
+    records: list[dict[str, Any]] = []
     for item in payload:
         if not isinstance(item, dict):
             continue
         agreement_id = item.get("agreementId")
         if agreement_id is None or not str(agreement_id).strip():
             continue
-        agreement_id = str(agreement_id).strip()
-        property_id = item.get("propertyId")
-        property_id = "" if property_id is None else str(property_id).strip()
-        key = (agreement_id, property_id)
-        if key in seen:
-            continue
-        seen.add(key)
-        records.append(key)
+        records.append(
+            {
+                "matrikkelId": matrikkel_id,
+                "agreementId": str(agreement_id).strip(),
+                "propertyId": item.get("propertyId"),
+                "agreementDescription": item.get("agreementDescription"),
+                "agreementText": item.get("agreementText"),
+            }
+        )
     return records
 
 
 def download_ambigous_gemini_data(
     matrikkel_ids: Iterable[str], output_path: Path
 ) -> None:
-    """Fetch Gemini Prod agreements for ambiguous matrikkels, including propertyId.
+    """Fetch Gemini Prod agreements for ambiguous matrikkels into a JSON file.
 
-    Writes headerless CSV rows: matrikkel_id,agreementId,propertyId.
+    Writes a JSON array of objects with matrikkelId, agreementId, propertyId,
+    agreementDescription and agreementText.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
     prod_api = APIS["prod"]
-    pair_count = 0
+    records: list[dict[str, Any]] = []
     missing_count = 0
     error_count = 0
 
-    with output_path.open("w", newline="", encoding="utf-8") as out:
-        writer = csv.writer(out, delimiter=",", lineterminator="\n")
-        for matrikkel_id in sorted(matrikkel_ids, key=matrikkel_sort_key):
-            gnr, bnr, fnr, snr = parse_matrikkel(matrikkel_id)
-            try:
-                payload = fetch_agreements(prod_api, gnr, bnr, fnr, snr)
-            except requests.RequestException as ex:
-                error_count += 1
-                print(f"{matrikkel_id}: skipped (lookup failed): {ex}")
-                continue
+    for matrikkel_id in sorted(matrikkel_ids, key=matrikkel_sort_key):
+        gnr, bnr, fnr, snr = parse_matrikkel(matrikkel_id)
+        try:
+            payload = fetch_agreements(prod_api, gnr, bnr, fnr, snr)
+        except requests.RequestException as ex:
+            error_count += 1
+            print(f"{matrikkel_id}: skipped (lookup failed): {ex}")
+            continue
 
-            records = records_from_gemini_payload(payload)
-            if not records:
-                missing_count += 1
-                print(f"{matrikkel_id}: no Gemini agreement ids")
-                continue
+        matrikkel_records = records_from_gemini_payload(matrikkel_id, payload)
+        if not matrikkel_records:
+            missing_count += 1
+            print(f"{matrikkel_id}: no Gemini agreement ids")
+            continue
 
-            records.sort(
-                key=lambda item: (
-                    agreement_sort_key(item[0]),
-                    agreement_sort_key(item[1]),
-                )
-            )
-            for agreement_id, property_id in records:
-                writer.writerow([matrikkel_id, agreement_id, property_id])
-                pair_count += 1
-            out.flush()
-            print(
-                f"{matrikkel_id}: "
-                + ", ".join(
-                    f"{agreement_id}:{property_id}" if property_id else agreement_id
-                    for agreement_id, property_id in records
-                )
-            )
+        matrikkel_records.sort(
+            key=lambda item: agreement_sort_key(item["agreementId"])
+        )
+        records.extend(matrikkel_records)
+        print(
+            f"{matrikkel_id}: "
+            + ", ".join(item["agreementId"] for item in matrikkel_records)
+        )
+
+    output_path.write_text(
+        json.dumps(records, indent=4, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
     print(
-        f"Saved {pair_count} Gemini rows to {output_path} "
+        f"Saved {len(records)} Gemini records to {output_path} "
         f"(missing={missing_count}, errors={error_count})"
     )
 
@@ -377,8 +378,9 @@ def main() -> None:
         f"Saved {len(ambiguous)} ambiguous Gemini matrikkels to {ambiguous_path}"
     )
 
-    gemini_detail_path = output_dir / f"agreement_diff_ambiguous_gemini_{today}.csv"
-    download_ambigous_gemini_data(ambiguous, gemini_detail_path)
+    if DOWNLOAD_AMBIGUOUS_GEMINI:
+        gemini_detail_path = output_dir / f"agreement_diff_ambiguous_gemini_{today}.json"
+        download_ambigous_gemini_data(ambiguous, gemini_detail_path)
 
 
 if __name__ == "__main__":
