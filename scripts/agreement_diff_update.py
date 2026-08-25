@@ -6,7 +6,8 @@ the Gemini matrikkel -> agreementId mapping.
 Inputs:
     - CUSTOMER_CSV: headerless export of
         SELECT GPSLSCustomerId, PASystem, AgreementId, ExternalAgreementId,
-               GnrBnrFnrSnr, ...
+               GnrBnrFnrSnr, Bid, BuildingType, NrOfOccupancyUnits, RegDate,
+               Type, Name, Address1, LastChanged, RegistryId
         FROM [HAMOS].[dbo].[Agreement] WHERE GPSLSCustomerId = 1
     - GEMINI_CSV: headerless MatrikkelId,ExternalId lookup from Gemini.
 
@@ -45,7 +46,7 @@ def parse_matrikkel(value: str) -> tuple[str, str, str, str]:
     return gnr, bnr, fnr, snr
 
 # ========= CONFIG (edit these) =========
-CUSTOMER_CSV = r"E:\Temp\Ymir_Compare\customer_1_all_agreements_20260824.csv"
+CUSTOMER_CSV = r"E:\Temp\Ymir_Compare\customer_1_agreements_with_registryid_20260825.csv"
 GEMINI_CSV = r"E:\Temp\Ymir_Compare\matrikkel_gemini_agreements_20260824.csv"
 OUTPUT_DIR = r"E:\Temp\Ymir_Compare\Sql_Updates"
 

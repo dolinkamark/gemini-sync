@@ -11,7 +11,7 @@ from pathlib import Path
 from gemini_diff_report import APIS, fetch_agreement_ids, parse_matrikkel
 
 # ========= CONFIG (edit these) =========
-INPUT_CSV = r"E:\Temp\Ymir_Compare\customer_1_all_agreements_20260824.csv"
+INPUT_CSV = r"E:\Temp\Ymir_Compare\customer_1_agreements_with_registryid_20260825.csv"
 OUTPUT_DIR = r"E:\Temp\Ymir_Compare"
 
 # Slice of unique, ascending matrikkel ids. END_INDEX is exclusive.
@@ -19,7 +19,10 @@ OUTPUT_DIR = r"E:\Temp\Ymir_Compare"
 START_INDEX = 0
 END_INDEX = 20000
 
-# CSV has no header. GnrBnrFnrSnr is the 5th column (0-based index 4).
+# CSV has no header. Columns are:
+# GPSLSCustomerId, PASystem, AgreementId, ExternalAgreementId, GnrBnrFnrSnr,
+# Bid, BuildingType, NrOfOccupancyUnits, RegDate, Type, Name, Address1,
+# LastChanged, RegistryId. GnrBnrFnrSnr is the 5th column (0-based index 4).
 MATRIKKEL_COLUMN_INDEX = 4
 # ======================================
 

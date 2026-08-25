@@ -20,11 +20,13 @@ from gemini_diff_report import parse_matrikkel
 
 # ========= CONFIG (edit these) =========
 GEMINI_CSV = r"E:\Temp\Ymir_Compare\matrikkel_gemini_agreements_20260824.csv"
-CUSTOMER_CSV = r"E:\Temp\Ymir_Compare\customer_1_all_agreements_20260824.csv"
+CUSTOMER_CSV = r"E:\Temp\Ymir_Compare\customer_1_agreements_with_registryid_20260825.csv"
 OUTPUT_DIR = r"E:\Temp\Ymir_Compare"
 
 # Customer SQL export has no header. Column indexes match:
-# GPSLSCustomerId, PASystem, AgreementId, ExternalAgreementId, GnrBnrFnrSnr, ...
+# GPSLSCustomerId, PASystem, AgreementId, ExternalAgreementId, GnrBnrFnrSnr,
+# Bid, BuildingType, NrOfOccupancyUnits, RegDate, Type, Name, Address1,
+# LastChanged, RegistryId
 CUSTOMER_AGREEMENT_ID_INDEX = 2
 CUSTOMER_EXTERNAL_AGREEMENT_ID_INDEX = 3
 CUSTOMER_MATRIKKEL_INDEX = 4
