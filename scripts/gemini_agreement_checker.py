@@ -6,7 +6,8 @@ Gemini CSV lines are: matrikkel_id,agreement_id
 Customer CSV is the GPSLSCustomerId=1 Agreement export (no header).
 Gemini agreement_id is checked against ExternalAgreementId, then matrikkel_id
 is checked against GnrBnrFnrSnr. Also reports unique GnrBnrFnrSnr values from
-the SQL export that never appear in the Gemini CSV.
+the SQL export that never appear in the Gemini CSV, and writes those matrikkel
+ids to a separate file.
 """
 from __future__ import annotations
 
@@ -305,6 +306,25 @@ def write_mismatches(path: Path, rows: list[dict[str, str]]) -> None:
         writer.writerows(rows)
 
 
+def matrikkel_ids_only_in_customer(
+    gemini_pairs: list[GeminiPair],
+    customer_rows: list[CustomerRow],
+    null_external: list[CustomerRow],
+) -> list[str]:
+    """Unique GnrBnrFnrSnr values that never appear in the Gemini CSV."""
+    gemini_matrikkels = {pair.matrikkel_id for pair in gemini_pairs}
+    customer_matrikkels = {row.matrikkel_id for row in customer_rows + null_external}
+    return sorted(customer_matrikkels - gemini_matrikkels, key=matrikkel_sort_key)
+
+
+def write_id_list(path: Path, ids: list[str]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as out:
+        writer = csv.writer(out, lineterminator="\n")
+        writer.writerow(["MatrikkelId"])
+        for matrikkel_id in ids:
+            writer.writerow([matrikkel_id])
+
+
 def main() -> None:
     gemini_path = Path(GEMINI_CSV)
     customer_path = Path(CUSTOMER_CSV)
@@ -329,6 +349,12 @@ def main() -> None:
     output_path = output_dir / "agreement_check_mismatches_20260824.csv"
     write_mismatches(output_path, mismatches)
 
+    only_in_customer_ids = matrikkel_ids_only_in_customer(
+        gemini_pairs, customer_rows, null_external
+    )
+    only_in_customer_path = output_dir / "matrikkel_ids_only_in_customer_20260824.csv"
+    write_id_list(only_in_customer_path, only_in_customer_ids)
+
     print(f"Matched: {counts['matched']}")
     print(f"Missing in customer (Gemini id not in ExternalAgreementId): {counts[MISMATCH_MISSING_IN_CUSTOMER]}")
     print(f"Missing in Gemini (ExternalAgreementId not in Gemini): {counts[MISMATCH_MISSING_IN_GEMINI]}")
@@ -341,6 +367,10 @@ def main() -> None:
         f"({counts['matrikkel_missing_in_gemini_rows']} agreement rows)"
     )
     print(f"Saved {len(mismatches)} mismatch rows to {output_path}")
+    print(
+        f"Saved {len(only_in_customer_ids)} matrikkel ids only in customer to "
+        f"{only_in_customer_path}"
+    )
 
 
 if __name__ == "__main__":
