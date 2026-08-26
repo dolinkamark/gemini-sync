@@ -5,10 +5,15 @@ the Gemini matrikkel -> agreementId mapping.
 
 Inputs:
     - CUSTOMER_CSV: headerless export of
-        SELECT GPSLSCustomerId, PASystem, AgreementId, ExternalAgreementId,
-               GnrBnrFnrSnr, Bid, BuildingType, NrOfOccupancyUnits, RegDate,
-               Type, Name, Address1, LastChanged, RegistryId
-        FROM [HAMOS].[dbo].[Agreement] WHERE GPSLSCustomerId = 1
+        SELECT GPSLSCustomerId, PASystem, GnrBnrFnrSnr, Gid, AgreementId,
+               ExternalAgreementId, Bid, RegDate, Type, ContactPerson, Estate,
+               EstatePostalCode, Address1, Address2, CustomerId, Name, Aid,
+               PostalCode, Commune, LastChanged, Status, Termin, BuildingType,
+               RegistryId, OwnerId, NrOfOccupancyUnits
+        FROM [HAMOS].[dbo].[Agreement]
+        WHERE GPSLSCustomerId = 1
+          AND (Type = 'Eg' OR Type = '12t' OR Type = 'BBL' OR Type = 'Fr')
+        ORDER BY Type
     - GEMINI_CSV: headerless MatrikkelId,ExternalId lookup from Gemini.
 
 Output:
@@ -20,6 +25,10 @@ Output:
     - agreement_diff_ambiguous_gemini_<date>.json: Gemini Prod lookup for those
       ambiguous matrikkels as objects with matrikkelId, agreementId,
       propertyId, agreementDescription and agreementText.
+    - agreement_diff_ambiguous_combined_<date>.json: the ambiguous Gemini
+      agreements grouped by matrikkelId, each with the Fieldata agreements from
+      CUSTOMER_CSV that share the same GnrBnrFnrSnr. Matrikkels without any
+      Fieldata agreement are left out.
 """
 from __future__ import annotations
 
@@ -48,11 +57,15 @@ def parse_matrikkel(value: str) -> tuple[str, str, str, str]:
     return gnr, bnr, fnr, snr
 
 # ========= CONFIG (edit these) =========
-CUSTOMER_CSV = r"E:\Temp\Ymir_Compare\customer_1_agreements_with_registryid_20260825.csv"
+CUSTOMER_CSV = r"E:\Temp\Ymir_Compare\customer_1_agreements__20260826.csv"
 GEMINI_CSV = r"E:\Temp\Ymir_Compare\matrikkel_gemini_agreements_20260824.csv"
 OUTPUT_DIR = r"E:\Temp\Ymir_Compare\Sql_Updates"
 
 DOWNLOAD_AMBIGUOUS_GEMINI = False
+BUILD_AMBIGUOUS_COMBINED = True
+
+# Blank = newest agreement_diff_ambiguous_gemini_*.json found in OUTPUT_DIR.
+AMBIGUOUS_GEMINI_JSON = ""
 
 GPSLS_CUSTOMER_ID = 1
 SQL_TABLE_NAME = "Agreement"
@@ -60,9 +73,17 @@ SQL_TABLE_NAME = "Agreement"
 # Customer SQL export has no header. Column indexes match the SELECT list.
 CUSTOMER_GPSLS_INDEX = 0
 CUSTOMER_PASYSTEM_INDEX = 1
-CUSTOMER_AGREEMENT_ID_INDEX = 2
-CUSTOMER_EXTERNAL_AGREEMENT_ID_INDEX = 3
-CUSTOMER_MATRIKKEL_INDEX = 4
+CUSTOMER_MATRIKKEL_INDEX = 2
+CUSTOMER_GID_INDEX = 3
+CUSTOMER_AGREEMENT_ID_INDEX = 4
+CUSTOMER_EXTERNAL_AGREEMENT_ID_INDEX = 5
+CUSTOMER_TYPE_INDEX = 8
+CUSTOMER_CONTACT_PERSON_INDEX = 9
+CUSTOMER_ESTATE_INDEX = 10
+CUSTOMER_ESTATE_POSTAL_CODE_INDEX = 11
+CUSTOMER_ADDRESS1_INDEX = 12
+CUSTOMER_ADDRESS2_INDEX = 13
+CUSTOMER_BUILDING_TYPE_INDEX = 22
 # ======================================
 
 
@@ -71,6 +92,14 @@ class CustomerRow(NamedTuple):
     agreement_id: str
     external_agreement_id: str
     matrikkel_id: str
+    gpsls_customer_id: str = ""
+    type: str = ""
+    contact_person: str = ""
+    estate: str = ""
+    estate_postal_code: str = ""
+    address1: str = ""
+    address2: str = ""
+    building_type: str = ""
 
 
 def cell(row: list[str], index: int) -> str:
@@ -81,6 +110,11 @@ def cell(row: list[str], index: int) -> str:
 
 def is_missing(value: str) -> bool:
     return not value or value.upper() == "NULL"
+
+
+def optional_cell(row: list[str], index: int) -> str:
+    value = cell(row, index)
+    return "" if is_missing(value) else value
 
 
 def normalize_matrikkel(raw: str) -> str:
@@ -153,7 +187,7 @@ def load_customer_rows(csv_path: Path) -> list[CustomerRow]:
     with csv_path.open(newline="", encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         for row in reader:
-            if len(row) <= CUSTOMER_MATRIKKEL_INDEX:
+            if len(row) <= CUSTOMER_EXTERNAL_AGREEMENT_ID_INDEX:
                 invalid += 1
                 continue
 
@@ -177,6 +211,16 @@ def load_customer_rows(csv_path: Path) -> list[CustomerRow]:
                     agreement_id=agreement_id,
                     external_agreement_id="" if is_missing(external_id) else external_id,
                     matrikkel_id=matrikkel_id,
+                    gpsls_customer_id=optional_cell(row, CUSTOMER_GPSLS_INDEX),
+                    type=optional_cell(row, CUSTOMER_TYPE_INDEX),
+                    contact_person=optional_cell(row, CUSTOMER_CONTACT_PERSON_INDEX),
+                    estate=optional_cell(row, CUSTOMER_ESTATE_INDEX),
+                    estate_postal_code=optional_cell(
+                        row, CUSTOMER_ESTATE_POSTAL_CODE_INDEX
+                    ),
+                    address1=optional_cell(row, CUSTOMER_ADDRESS1_INDEX),
+                    address2=optional_cell(row, CUSTOMER_ADDRESS2_INDEX),
+                    building_type=optional_cell(row, CUSTOMER_BUILDING_TYPE_INDEX),
                 )
             )
 
@@ -340,6 +384,123 @@ def download_ambigous_gemini_data(
     )
 
 
+def resolve_ambiguous_gemini_path(output_dir: Path, today: str) -> Path | None:
+    """Pick the Gemini ambiguous JSON to join with, newest date wins."""
+    if AMBIGUOUS_GEMINI_JSON:
+        configured = Path(AMBIGUOUS_GEMINI_JSON)
+        return configured if configured.is_file() else None
+
+    todays_path = output_dir / f"agreement_diff_ambiguous_gemini_{today}.json"
+    if todays_path.is_file():
+        return todays_path
+
+    candidates = sorted(output_dir.glob("agreement_diff_ambiguous_gemini_*.json"))
+    return candidates[-1] if candidates else None
+
+
+def load_ambiguous_gemini_records(
+    output_dir: Path, today: str, ambiguous: Iterable[str]
+) -> list[dict[str, Any]]:
+    """Read the ambiguous Gemini agreements, downloading them if none exist."""
+    path = resolve_ambiguous_gemini_path(output_dir, today)
+    if path is None:
+        path = output_dir / f"agreement_diff_ambiguous_gemini_{today}.json"
+        print(f"No Gemini ambiguous JSON found, downloading to {path}")
+        download_ambigous_gemini_data(ambiguous, path)
+
+    records = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(records, list):
+        raise ValueError(f"Expected a JSON array in {path}")
+
+    print(f"Loaded {len(records)} ambiguous Gemini records from {path}")
+    return [item for item in records if isinstance(item, dict)]
+
+
+def build_ambiguous_combined_json(
+    gemini_records: list[dict[str, Any]],
+    customer_rows: list[CustomerRow],
+    output_path: Path,
+) -> None:
+    """Group the ambiguous Gemini agreements per matrikkel with Fieldata rows."""
+    gemini_by_matrikkel: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for record in gemini_records:
+        matrikkel_id = str(record.get("matrikkelId") or "").strip()
+        if not matrikkel_id:
+            continue
+        gemini_by_matrikkel[matrikkel_id].append(
+            {
+                "agreementId": record.get("agreementId"),
+                "agreementDescription": record.get("agreementDescription"),
+                "agreementText": record.get("agreementText"),
+            }
+        )
+
+    fieldata_by_matrikkel: dict[str, list[CustomerRow]] = defaultdict(list)
+    for row in customer_rows:
+        fieldata_by_matrikkel[row.matrikkel_id].append(row)
+
+    entries: list[dict[str, Any]] = []
+    gemini_count = 0
+    fieldata_count = 0
+    skipped_without_fieldata = 0
+
+    for matrikkel_id in sorted(gemini_by_matrikkel, key=matrikkel_sort_key):
+        fieldata_rows = sorted(
+            fieldata_by_matrikkel.get(matrikkel_id, []),
+            key=lambda row: agreement_sort_key(row.agreement_id),
+        )
+        if not fieldata_rows:
+            skipped_without_fieldata += 1
+            continue
+
+        gemini_agreements = sorted(
+            gemini_by_matrikkel[matrikkel_id],
+            key=lambda item: agreement_sort_key(str(item["agreementId"] or "")),
+        )
+
+        gemini_count += len(gemini_agreements)
+        fieldata_count += len(fieldata_rows)
+
+        entries.append(
+            {
+                "matrikkelId": matrikkel_id,
+                "geminiAgreements": gemini_agreements,
+                "fieldataAgreements": [
+                    fieldata_agreement(row) for row in fieldata_rows
+                ],
+            }
+        )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(entries, indent=4, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    print(
+        f"Saved {len(entries)} matrikkels to {output_path} "
+        f"(gemini={gemini_count}, fieldata={fieldata_count}, "
+        f"skipped without fieldata={skipped_without_fieldata})"
+    )
+
+
+def fieldata_agreement(row: CustomerRow) -> dict[str, Any]:
+    return {
+        "gpslsCustomerId": row.gpsls_customer_id or None,
+        "paSystem": row.pa_system or None,
+        "gnrBnrFnrSnr": row.matrikkel_id or None,
+        "agreementId": row.agreement_id or None,
+        "externalAgreementId": row.external_agreement_id or None,
+        "type": row.type or None,
+        "contactPerson": row.contact_person or None,
+        "estate": row.estate or None,
+        "estatePostalCode": row.estate_postal_code or None,
+        "address1": row.address1 or None,
+        "address2": row.address2 or None,
+        "buildingType": row.building_type or None,
+    }
+
+
 def main() -> None:
     customer_path = Path(CUSTOMER_CSV)
     gemini_path = Path(GEMINI_CSV)
@@ -381,6 +542,11 @@ def main() -> None:
     if DOWNLOAD_AMBIGUOUS_GEMINI:
         gemini_detail_path = output_dir / f"agreement_diff_ambiguous_gemini_{today}.json"
         download_ambigous_gemini_data(ambiguous, gemini_detail_path)
+
+    if BUILD_AMBIGUOUS_COMBINED:
+        combined_path = output_dir / f"agreement_diff_ambiguous_combined_{today}.json"
+        gemini_records = load_ambiguous_gemini_records(output_dir, today, ambiguous)
+        build_ambiguous_combined_json(gemini_records, customer_rows, combined_path)
 
 
 if __name__ == "__main__":
