@@ -4,6 +4,8 @@ public static class EntityTypes
 {
     public const string GarbageBins = "GarbageBins";
 
+    public const string GarbageBinPickups = "GarbageBinPickups";
+
     public const string UtilityConnections = "UtilityConnections";
 
     public const string Fractions = "Fractions";

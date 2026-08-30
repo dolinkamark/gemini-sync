@@ -68,6 +68,7 @@ builder.Services.AddSingleton(geminiSettings);
 
 builder.Services.AddTransient<IAgreementExcemptionRepository, AgreementExcemptionRepository>();
 builder.Services.AddTransient<IAgreementPlacesRepository, AgreementPlacesRepository>();
+builder.Services.AddTransient<ILoglineRepository, LoglineRepository>();
 builder.Services.AddTransient<IIntegrationRepository, IntegrationRepository>();
 
 //Garbage bins

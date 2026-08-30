@@ -27,36 +27,6 @@ public class FractionsSyncService(
         return syncReport;
     }
 
-    public List<FractionInTime> CreateFractionsInTime(List<PlaceAgreementInterval> intervals)
-    {
-        var fractionInTimeList = new List<FractionInTime>();
-
-        foreach (var interval in intervals)
-        {
-            var denominator = interval.AgreementOccupancyList.Sum(o => o.NrOfOccupancyUnits);
-
-            fractionInTimeList.Add(new FractionInTime
-            {
-                DateFrom = new DateTimeOffset(interval.FromDate),
-                DateTo = interval.ToDate.HasValue
-                            ? new DateTimeOffset(interval.ToDate.Value)
-                            : (DateTimeOffset?)null,
-                ModifiedAt = new DateTimeOffset(interval.UpdatedAt),
-
-                Agreements = interval.AgreementOccupancyList
-                    .Select(occupancy => new FractionAgreement
-                    {
-                        AgreementId = occupancy.GeminiAgreementId,
-                        FractionNumerator = occupancy.NrOfOccupancyUnits,
-                        FractionDenominator = denominator
-                    })
-                    .ToList()
-            });
-        }
-
-        return fractionInTimeList;
-    }
-
     public List<AgreementFractionTimeline> CreateFractionTimelines(List<FractionInTime> intervals)
     {
         if (intervals == null || intervals.Count == 0)
@@ -200,9 +170,9 @@ public class FractionsSyncService(
                     .ToList();
 
                 var intervalUpdatedAt = activeLines
-                .Max(l => l.UpdatedAt > l.FromDate
-                          ? l.UpdatedAt
-                          : l.FromDate);
+                    .Max(l => l.UpdatedAt > l.FromDate
+                              ? l.UpdatedAt
+                              : l.FromDate);
 
                 // Merge adjacent intervals if identical agreement set;
                 // UpdatedAt becomes the max across merged parts (safe + intuitive).

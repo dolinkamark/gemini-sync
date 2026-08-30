@@ -20,8 +20,12 @@ public class WasteManagementContext : DbContext
     public DbSet<AgreementExcemption> AgreementExcemptions { get; set; }
 
     public DbSet<GarbageBinCollectionLine> GarbageBinCollections { get; set; }
+
     public DbSet<AgreementPlaceConnectionLine> AgreementPlaceConnections { get; set; }
+
     public DbSet<AgreementPlaceHistoryLine> AgreementPlaceHistoryLines { get; set; }
+
+    public DbSet<LoglineLine> LoglineLines { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +38,9 @@ public class WasteManagementContext : DbContext
             .HasNoKey();
 
         modelBuilder.Entity<AgreementPlaceHistoryLine>()
+            .HasNoKey();
+
+        modelBuilder.Entity<LoglineLine>()
             .HasNoKey();
     }
 }

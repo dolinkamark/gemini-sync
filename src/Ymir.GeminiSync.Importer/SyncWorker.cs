@@ -15,6 +15,7 @@ public class SyncWorker(
     IAgreementExcemptionRepository agreementExcemptionRepository,
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinService collectionService,
+    ILoglineRepository loglineRepository,
     IIntegrationRepository integrationRepository,
     GeminiSettings geminiSettings,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
@@ -100,6 +101,27 @@ public class SyncWorker(
                 {
                     logger.LogInformation("Saving agreement exemptions");
                     File.WriteAllText($"Cache/agreement_exemptions_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(exemptions));
+                }
+            }
+
+            if (options.Entities.Contains(EntityTypes.GarbageBinPickups))
+            {
+                var placeTypeList = placeTypes.Split(",");
+
+                foreach (var placeType in placeTypeList)
+                {
+                    var agreementPlaces = await loglineRepository.GetLoglineLines(customerId, placeType);
+
+                    if (options.UseFileCache)
+                    {
+                        logger.LogInformation("Saving logline lines to cache");
+                        File.WriteAllText(
+                            $"Cache/logline_lines_{placeType.Replace(" ", "_")}_{DateTime.Now.ToString("yyyyMMdd")}.json",
+                            JsonSerializer.Serialize(agreementPlaces)
+                        );
+                    }
+
+                    logger.LogInformation("Total logline lines returned for place type {PlaceType}: {Count}", placeType, agreementPlaces.Count);
                 }
             }
 
