@@ -107,6 +107,74 @@ public class GarbageBinPickupManualTests
         Assert.Fail("Manual test only");
     }
 
+    [Fact(Skip = "Manual test only")]
+    public async Task DeleteWrongPickups()
+    {
+        //Arrange
+        const string filePath = "E:\\Temp\\Ymir_Sync\\pickups_20260827\\logline_lines_Nedgravd_privat_20260827.json";
+
+        const int testCustomerId = 1;
+        const string placeType = "Nedgravd privat";
+
+        var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
+
+        var loglineLines = await FileUtils.ReadFileContent<List<LoglineLine>>(filePath);
+
+        var loglineFractions = loglineLines
+            .GroupBy(l => l.FractionName)
+            .Select(l => l.Key)
+            .ToList();
+
+        //Act
+        var syncReport = new SyncReport();
+
+        var updateCount = 0;
+        var checkedCount = 0;
+
+        foreach (var logline in loglineLines)
+        {
+            try
+            {
+                var currentPickups = await testGeminiClient.GetPrivateContainerPickups((int)logline.LogLineId);
+
+                if(currentPickups.Count == 1)
+                {
+                    var isSuccesful = await testGeminiClient.DeletePrivateContainerPickup((int)logline.LogLineId, (int)logline.LogLineId);
+                    if (isSuccesful)
+                    {
+                        updateCount++;
+                    }
+                    else
+                    {
+                        syncReport.Errors.Add(new SyncError
+                        {
+                            PlaceNr = (int)logline.LogLineId,
+                            Description = $"Delete failed for logline id: {(int)logline.LogLineId}"
+                        });
+                    }
+                }
+
+                checkedCount++;
+            }
+            catch (Exception ex)
+            {
+                syncReport.Errors.Add(new SyncError
+                {
+                    PlaceNr = (int)logline.LogLineId,
+                    Description = ex.ToString()
+                });
+
+                checkedCount++;
+            }
+        }
+
+        syncReport.TotalCount = loglineLines.Count;
+        syncReport.UpdatedCount = updateCount;
+
+        //Assert
+        Assert.Fail("Manual test only");
+    }
+
     private GarbageBinCategory ToGarbageBinCategory(string fractionName)
     {
         return fractionName?.Trim().ToLowerInvariant() switch
