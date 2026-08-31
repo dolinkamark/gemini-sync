@@ -66,7 +66,7 @@ public class GarbageBinPickupManualTests
             {
                 GarbagePrivateContainerPickupId = (int)logline.LogLineId,
                 ExecutedDate = logline.Time.Value,
-                GarbagePrivateContainerGroupId = (int)logline.LogLineId,
+                GarbagePrivateContainerGroupId = (int)logline.PlaceNr,
                 WasteType = ToGarbageBinCategory(logline.FractionName)
             });
         }
