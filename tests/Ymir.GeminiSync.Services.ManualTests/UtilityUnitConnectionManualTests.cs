@@ -26,7 +26,8 @@ public class UtilityUnitConnectionManualTests
         PublicContainerNames = new List<string> { "Bruksdel nedgravd", "Hyttecontainer" },
         NotConnectedToPickupSystem = new List<string> { "Hyttecontainer" },
         ExemptionMaps = new List<ExemptionMap>
-        { 
+        {
+            new ExemptionMap { Id = 5, IsFullExemption = true },
             new ExemptionMap { Id = 6, CompostType = CompostType.Food, },
             new ExemptionMap { Id = 7, CompostType = CompostType.GardenAndFood, },
         }
@@ -34,9 +35,9 @@ public class UtilityUnitConnectionManualTests
 
     private readonly GeminiSettings _settings = new GeminiSettings
     {
-        BaseUrl = "https://powelqapfpublicapi.azure-api.net/public",
-        MunicipalityNo = "stavangerkundetest",
-        SubscriptionKey = "3d8d028ee9be4cc9a9e4ac0a92068966"
+        BaseUrl = "https://pfpublicapi.geminisuite.com/public",
+        MunicipalityNo = "stavanger",
+        SubscriptionKey = "f714fceb470744ffa6017cfb050ffcbb"
     };
 
     private readonly SyncReportOptions _reportOptions = new SyncReportOptions
@@ -61,10 +62,10 @@ public class UtilityUnitConnectionManualTests
     public async Task UptadeAllUtilityConnections()
     {
         //Arrange
-        const string basePath = "E:\\Temp\\Ymir_Compare\\UtilityConnections";
+        const string basePath = "E:\\Temp\\Ymir_Sync\\utilityunits_20260813_01";
 
-        const string filePath = "agreement_places_20260810.json";
-        const string agreementExemptionsFilePath = "agreement_exemptions_20260810.json";
+        const string filePath = "agreement_places_20260813.json";
+        const string agreementExemptionsFilePath = "agreement_exemptions_20260813.json";
 
         const int testCustomerId = 1;
 
@@ -91,7 +92,7 @@ public class UtilityUnitConnectionManualTests
         );
 
         //Act
-        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(testCustomerId, true);
+        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(testCustomerId, false);
 
         //Assert
         Assert.Fail("Manual test only");

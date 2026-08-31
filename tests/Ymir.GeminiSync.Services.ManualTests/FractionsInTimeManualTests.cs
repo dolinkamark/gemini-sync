@@ -14,9 +14,9 @@ public class FractionsInTimeManualTests
 
     private readonly GeminiSettings _settings = new GeminiSettings
     {
-        BaseUrl = "https://powelqapfpublicapi.azure-api.net/public",
-        MunicipalityNo = "stavangerkundetest",
-        SubscriptionKey = "3d8d028ee9be4cc9a9e4ac0a92068966"
+        BaseUrl = "https://pfpublicapi.geminisuite.com/public",
+        MunicipalityNo = "stavanger",
+        SubscriptionKey = "f714fceb470744ffa6017cfb050ffcbb"
     };
 
     public FractionsInTimeManualTests()
