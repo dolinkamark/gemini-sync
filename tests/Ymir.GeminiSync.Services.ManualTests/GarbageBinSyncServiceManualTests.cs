@@ -40,11 +40,13 @@ public class GarbageBinSyncServiceManualTests
     public async Task SyncGarbageBinCollections()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir_Sync\\garbage_bins_20260813_01\\garbage_bins_Spann_20260813.json";
+        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\garbage_bins_20260813_01\\garbage_bins_Spann_20260813.json";
+        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\garbage_bins\\garbage_bins_Spann_20260902.json";
         const int customerId = 1;
         const string placeType = "Spann";
 
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
+        var prevCollectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(previousFilePath);
 
         var garbageBinRepository = Substitute.For<IGarbageBinCollectionRepository>();
         garbageBinRepository.GetGarbageBinCollections(Arg.Any<int>(), Arg.Any<string>())
@@ -58,7 +60,7 @@ public class GarbageBinSyncServiceManualTests
         );
 
         //Act
-        var syncReport = await testGeminiSyncService.SyncGarbageBinCollections(customerId, placeType);
+        var syncReport = await testGeminiSyncService.SyncGarbageBinCollections(customerId, placeType, previousCollection: prevCollectionLines);
 
         //Assert
         Assert.Fail("Manual test only");

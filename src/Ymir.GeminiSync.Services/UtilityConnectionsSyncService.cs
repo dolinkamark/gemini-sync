@@ -13,7 +13,11 @@ public class UtilityConnectionsSyncService(
     ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IUtilityConnectionsSyncService
 {
-    public async Task<SyncReport> SyncUtilityUnitConnections(int customerId, bool checkDifference = false)
+    public async Task<SyncReport> SyncUtilityUnitConnections(
+        int customerId,
+        bool checkDifference = false,
+        List<AgreementPlaceConnectionLine> previousConnections = null,
+        List<AgreementExcemption> previousExemptions = null)
     {
         var syncReport = new SyncReport();
 
@@ -23,6 +27,25 @@ public class UtilityConnectionsSyncService(
 
         //Step 2) Build the dto list to send
         var connectionTimelines = utilityConnectionService.CreateUtilityUnitTimelines(connectionsLines, exemptions);
+        var totalCount = connectionTimelines.Count;
+
+        if (previousConnections != null)
+        {
+            var previousTimelines = utilityConnectionService.CreateUtilityUnitTimelines(
+                previousConnections,
+                previousExemptions ?? new List<AgreementExcemption>());
+
+            var previousByAgreementId = previousTimelines
+                .Where(t => t.updateDto.ConnectionsInTime.Count > 0)
+                .ToDictionary(t => t.agreementId, t => t.updateDto.ConnectionsInTime);
+
+            connectionTimelines = connectionTimelines
+                .Where(timeline =>
+                    !previousByAgreementId.TryGetValue(timeline.agreementId, out var previous)
+                    || !utilityConnectionService.AreTimelinesEqual(
+                        previous, timeline.updateDto.ConnectionsInTime))
+                .ToList();
+        }
 
         //Step 3) Sync changed parts
         var updateCount = 0;
@@ -85,7 +108,7 @@ public class UtilityConnectionsSyncService(
             }
         }
 
-        syncReport.TotalCount = connectionTimelines.Count;
+        syncReport.TotalCount = totalCount;
         syncReport.UpdatedCount = updateCount;
 
         //Step 4) Save report

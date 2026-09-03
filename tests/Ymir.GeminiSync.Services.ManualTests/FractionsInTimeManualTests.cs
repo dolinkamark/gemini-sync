@@ -30,10 +30,16 @@ public class FractionsInTimeManualTests
     public async Task UpdateFractionsInTime()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir_Sync\\fractions_20260813_01\\agreement_place_history_lines_Spann_20260813.json";
+        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\fractions_20260813_01\\agreement_place_history_lines_Hyttecontainer_20260813.json";
+        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\fractions\\agreement_place_history_lines_Hyttecontainer_20260902.json";
 
         var placeLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(filePath);
         placeLines = placeLines
+            .Where(p => !String.IsNullOrWhiteSpace(p.ExternalAgreementId))
+            .ToList();
+
+        var previousPlaceLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(previousFilePath);
+        previousPlaceLines = previousPlaceLines
             .Where(p => !String.IsNullOrWhiteSpace(p.ExternalAgreementId))
             .ToList();
 
@@ -44,6 +50,13 @@ public class FractionsInTimeManualTests
         //Act
         var intervals = fractionService.BuildFractionIntervalsByDate(placeLines);
         var timelines = fractionService.CreateFractionTimelines(intervals);
+
+        var previousTimelines = fractionService.CreateFractionTimelines(
+            fractionService.BuildFractionIntervalsByDate(previousPlaceLines)
+        );
+
+        var totalCount = timelines.Count;
+        timelines = fractionService.GetChangedTimelines(timelines, previousTimelines);
 
         var updatedCount = 0;
         var syncReport = new SyncReport();
@@ -83,7 +96,7 @@ public class FractionsInTimeManualTests
             }
         }
 
-        syncReport.TotalCount = timelines.Count;
+        syncReport.TotalCount = totalCount;
         syncReport.UpdatedCount = updatedCount;
 
         var errorContent = JsonSerializer.Serialize(syncReport.Errors);

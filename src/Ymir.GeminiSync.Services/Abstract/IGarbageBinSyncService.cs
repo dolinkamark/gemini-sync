@@ -4,5 +4,5 @@ namespace Ymir.GeminiSync.Services.Abstract;
 
 public interface IGarbageBinSyncService
 {
-    Task<SyncReport> SyncGarbageBinCollections(int customerId, string placeTypeDescription, bool checkDifference = false);
+    Task<SyncReport> SyncGarbageBinCollections(int customerId, string placeTypeDescription, bool checkDifference = false, List<GarbageBinCollectionLine> previousCollection = null);
 }

@@ -42,25 +42,34 @@ public class GarbageBinPickupManualTests
     public async Task SyncContainerPickups()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir_Sync\\pickups_20260827\\logline_lines_Nedgravd_privat_20260827.json";
+        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\pickups_20260827\\logline_lines_Nedgravd_privat_20260827.json";
+        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\logline_lines_Nedgravd_privat_20260902.json";
 
         const int testCustomerId = 1;
         const string placeType = "Nedgravd privat";
 
+        var invoiceStartTime = new DateTime(2026, 7, 1);
+
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
-        var loglinesLines = await FileUtils.ReadFileContent<List<LoglineLine>>(filePath);
+        var previousLoglines = await FileUtils.ReadFileContent<List<LoglineLine>>(previousFilePath);
+        var loglineLines = await FileUtils.ReadFileContent<List<LoglineLine>>(filePath);
 
-        var loglineFractions = loglinesLines
+        var loglineFractions = loglineLines
             .GroupBy(l => l.FractionName)
             .Select(l => l.Key)
+            .ToList();
+
+        var newLoglines = loglineLines
+            .Where(l => l.Time >= invoiceStartTime
+                   && !previousLoglines.Any(pl => l.LogLineId == pl.LogLineId))
             .ToList();
 
         //Act
         var syncReport = new SyncReport();
         var pickups = new List<ContainerPickupDto>();
 
-        foreach (var logline in loglinesLines)
+        foreach (var logline in newLoglines)
         {
             pickups.Add(new ContainerPickupDto
             {
@@ -89,6 +98,8 @@ public class GarbageBinPickupManualTests
                         Description = $"Update failed for dto: {JsonSerializer.Serialize(pickup)}"
                     });
                 }
+
+                await Task.Delay(50);
             }
             catch(Exception ex)
             {
@@ -111,18 +122,24 @@ public class GarbageBinPickupManualTests
     public async Task DeleteWrongPickups()
     {
         //Arrange
-        const string filePath = "E:\\Temp\\Ymir_Sync\\pickups_20260827\\logline_lines_Nedgravd_privat_20260827.json";
+        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\pickups_20260827\\logline_lines_Nedgravd_privat_20260827.json";
+        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\logline_lines_Nedgravd_privat_20260902.json";
 
         const int testCustomerId = 1;
         const string placeType = "Nedgravd privat";
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
+        var previousLoglines = await FileUtils.ReadFileContent<List<LoglineLine>>(previousFilePath);
         var loglineLines = await FileUtils.ReadFileContent<List<LoglineLine>>(filePath);
 
         var loglineFractions = loglineLines
             .GroupBy(l => l.FractionName)
             .Select(l => l.Key)
+            .ToList();
+
+        var loglinesToRemove = previousLoglines
+            .Where(pl => !loglineLines.Any(l => l.LogLineId == pl.LogLineId))
             .ToList();
 
         //Act
@@ -131,15 +148,17 @@ public class GarbageBinPickupManualTests
         var updateCount = 0;
         var checkedCount = 0;
 
-        foreach (var logline in loglineLines)
+        foreach (var logline in loglinesToRemove)
         {
+            checkedCount++;
+
             try
             {
-                var currentPickups = await testGeminiClient.GetPrivateContainerPickups((int)logline.LogLineId);
+                var currentPickups = await testGeminiClient.GetPrivateContainerPickups(logline.PlaceNr);
 
-                if(currentPickups.Count == 1)
+                if(currentPickups.Any(l => l.Id == logline.LogLineId))
                 {
-                    var isSuccesful = await testGeminiClient.DeletePrivateContainerPickup((int)logline.LogLineId, (int)logline.LogLineId);
+                    var isSuccesful = await testGeminiClient.DeletePrivateContainerPickup(logline.PlaceNr, (int)logline.LogLineId);
                     if (isSuccesful)
                     {
                         updateCount++;
@@ -152,9 +171,9 @@ public class GarbageBinPickupManualTests
                             Description = $"Delete failed for logline id: {(int)logline.LogLineId}"
                         });
                     }
-                }
 
-                checkedCount++;
+                    await Task.Delay(3000);
+                }
             }
             catch (Exception ex)
             {
@@ -163,8 +182,6 @@ public class GarbageBinPickupManualTests
                     PlaceNr = (int)logline.LogLineId,
                     Description = ex.ToString()
                 });
-
-                checkedCount++;
             }
         }
 

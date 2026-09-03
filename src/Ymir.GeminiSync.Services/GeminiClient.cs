@@ -95,6 +95,12 @@ public class GeminiClient : IGeminiClient
         var response = await DoApiCallInternal(url, HttpMethod.Delete);
         return response.IsSuccessStatusCode;
     }
+    public async Task<bool> DeletePrivateContainerPickup(int garbageCollectionId, int pickupId)
+    {
+        string url = $"{_settings.BaseUrl}/garbagebins/api/GarbagePrivateContainerGroup/{garbageCollectionId}/pickups/{pickupId}";
+        var response = await DoApiCallInternal(url, HttpMethod.Delete);
+        return response.IsSuccessStatusCode;
+    }
 
     #endregion
 

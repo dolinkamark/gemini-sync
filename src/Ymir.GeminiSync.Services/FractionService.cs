@@ -221,6 +221,61 @@ public class FractionService : IFractionService
         return timelines;
     }
 
+    public bool AreFractionTimelinesEqual(List<AgreementFractionTimeline> first, List<AgreementFractionTimeline> second)
+    {
+        if (ReferenceEquals(first, second)) return true;
+        if (first == null || second == null) return false;
+        if (first.Count != second.Count) return false;
+
+        var orderedFirst = first.OrderBy(t => t.AgreementId).ToList();
+        var orderedSecond = second.OrderBy(t => t.AgreementId).ToList();
+
+        for (int i = 0; i < orderedFirst.Count; i++)
+        {
+            var firstTimeline = orderedFirst[i];
+            var secondTimeline = orderedSecond[i];
+
+            if (firstTimeline.AgreementId != secondTimeline.AgreementId)
+                return false;
+
+            if (firstTimeline.FractionsInTime.Count != secondTimeline.FractionsInTime.Count)
+                return false;
+
+            for (int j = 0; j < firstTimeline.FractionsInTime.Count; j++)
+            {
+                var firstEntry = firstTimeline.FractionsInTime[j];
+                var secondEntry = secondTimeline.FractionsInTime[j];
+
+                if (firstEntry.DateFrom.Date != secondEntry.DateFrom.Date
+                    || firstEntry.DateTo?.Date != secondEntry.DateTo?.Date
+                    || firstEntry.FractionNumerator != secondEntry.FractionNumerator
+                    || firstEntry.FractionDenominator != secondEntry.FractionDenominator)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public List<(int, List<AgreementFractionTimeline>)> GetChangedTimelines(
+        List<(int, List<AgreementFractionTimeline>)> currentTimelines,
+        List<(int, List<AgreementFractionTimeline>)> previousTimelines)
+    {
+        if (currentTimelines == null || currentTimelines.Count == 0)
+            return new();
+
+        var previousByPlaceNr = (previousTimelines ?? new())
+            .ToDictionary(t => t.Item1, t => t.Item2);
+
+        return currentTimelines
+            .Where(current =>
+                !previousByPlaceNr.TryGetValue(current.Item1, out var previous)
+                || !AreFractionTimelinesEqual(previous, current.Item2))
+            .ToList();
+    }
+
     #region Private Helpers
 
     private bool SameAgreements(List<int> a, List<long> b)

@@ -15,18 +15,21 @@ public interface IGeminiClient
 
     Task<bool> UpdateGarbageBinCollection(GarbageBinsStateInTimeDto garbageBinsStates);
 
-    //Private containers
-    Task<List<PrivateContainerFractionsResponse>> GetPrivateContainerGroupFractions(int privateContainerGroupId);
-
-    Task<bool> UpdatePrivateContainerGroupFractions(
-        int privateContainerGroupId, List<PrivateContainerGroupAgreementFractions> agreementFractions);
-
     //Garbage bin pickups
     Task<List<GarbagePickupDto>> GetGarbageBinPickups(int garbageCollectionId);
 
     Task<bool> AddGarbageBinPickup(GarbagePickupDto pickupDto);
 
     Task<bool> DeleteGarbageBinPickup(int garbageCollectionId, int pickupId);
+
+    //Private containers
+    Task<List<PrivateContainerFractionsResponse>> GetPrivateContainerGroupFractions(int privateContainerGroupId);
+
+    Task<bool> UpdatePrivateContainerGroupFractions(
+        int privateContainerGroupId, List<PrivateContainerGroupAgreementFractions> agreementFractions);
+
+    //Private container pickups
+    Task<bool> DeletePrivateContainerPickup(int garbageCollectionId, int pickupId);
 
     //Utility connection
     Task<List<ConnectionTimelineDto>> GetUtilityConnectionTimeline(long agreementId);

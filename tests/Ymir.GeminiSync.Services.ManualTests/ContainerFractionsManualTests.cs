@@ -25,16 +25,19 @@ public class ContainerFractionsManualTests
             .Returns(_ => new HttpClient());
     }
 
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task UpdateFractionsInTime()
     {
         //Arrange
+        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\container_fractions_20260827\\agreement_place_history_lines_Nedgravd_privat_20260828.json";
         const string filePath = "E:\\Temp\\Ymir_Sync\\container_fractions_20260827\\agreement_place_history_lines_Nedgravd_privat_20260828.json";
 
         var placeLines = await FileUtils.ReadFileContent<List<AgreementPlaceHistoryLine>>(filePath);
         placeLines = placeLines
             .Where(p => !String.IsNullOrWhiteSpace(p.ExternalAgreementId))
             .ToList();
+
+        //var filteredLines = placeLines.Where(l => l.ExternalAgreementId == "16703").ToList();
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
         var fractionService = new FractionService();

@@ -10,7 +10,11 @@ public class GarbageBinSyncService(
     ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IGarbageBinSyncService
 {
-    public async Task<SyncReport> SyncGarbageBinCollections(int customerId, string placeTypeDescription, bool checkDifference = false)
+    public async Task<SyncReport> SyncGarbageBinCollections(
+        int customerId,
+        string placeTypeDescription,
+        bool checkDifference = false,
+        List<GarbageBinCollectionLine> previousCollection = null)
     {
         var syncReport = new SyncReport();
 
@@ -19,6 +23,26 @@ public class GarbageBinSyncService(
 
         //Step 2) Build the dto list to send
         var garbageBinStateInTimeList = garbageBinService.CreateGarbageBinsStateInTimeList(garbageBinCollections, placeTypeDescription);
+        var totalCount = garbageBinStateInTimeList.Count;
+
+        if (previousCollection != null)
+        {
+            var previousStateInTimeList = garbageBinService
+                .CreateGarbageBinsStateInTimeList(previousCollection, placeTypeDescription);
+
+            var previousByCollectionId = previousStateInTimeList
+                .Where(s => s.StateInTime.Count > 0)
+                .ToDictionary(s => s.StateInTime[0].GarbageBinCollectionId, s => s.StateInTime);
+
+            garbageBinStateInTimeList = garbageBinStateInTimeList
+                .Where(stateInTime =>
+                {
+                    var collectionId = stateInTime.StateInTime.FirstOrDefault()?.GarbageBinCollectionId ?? 0;
+                    return !previousByCollectionId.TryGetValue(collectionId, out var previousState)
+                        || !garbageBinService.AreGarbageBinStateInTimesEqual(previousState, stateInTime.StateInTime);
+                })
+                .ToList();
+        }
 
         //TODO: log stateInTime.StateInTime == 0 as errors
 
@@ -67,7 +91,7 @@ public class GarbageBinSyncService(
             }
         }
 
-        syncReport.TotalCount = garbageBinStateInTimeList.Count;
+        syncReport.TotalCount = totalCount;
         syncReport.UpdatedCount = updatedCount;
 
         //Step 4) Save report

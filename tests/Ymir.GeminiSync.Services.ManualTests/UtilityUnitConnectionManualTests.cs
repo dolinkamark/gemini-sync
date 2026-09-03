@@ -58,30 +58,37 @@ public class UtilityUnitConnectionManualTests
         _utilityConnectionService =  new UtilityConnectionsService(_serviceOptions);
     }
 
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task UptadeAllUtilityConnections()
     {
         //Arrange
-        const string basePath = "E:\\Temp\\Ymir_Sync\\utilityunits_20260813_01";
+        const string basePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\utility_connections_20260902";
+        const string previousBasePath = "E:\\Temp\\Ymir_Sync\\utilityunits_20260813_01";
 
-        const string filePath = "agreement_places_20260813.json";
-        const string agreementExemptionsFilePath = "agreement_exemptions_20260813.json";
+        const string filePath = "agreement_places_20260902.json";
+        const string agreementExemptionsFilePath = "agreement_exemptions_20260902.json";
+        const string previousFilePath = "agreement_places_20260813.json";
+        const string previousExemptionsFilePath = "agreement_exemptions_20260813.json";
 
         const int testCustomerId = 1;
 
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
         var connectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(Path.Join(basePath, filePath));
-        var filteredLines = connectionLines.Where(l => l.GnrBnrFnrSnr == "7.843.0.0").ToList();
 
         _agreementPlacesRepository
             .GetAllUtilityUnitConnections(Arg.Any<int>())
-            .Returns(Task.FromResult(filteredLines));
+            .Returns(Task.FromResult(connectionLines));
 
         var exemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(Path.Join(basePath, agreementExemptionsFilePath));
         _agreementExcemptionsRepository
             .GetAllAgreementExcemptions(Arg.Any<int>())
             .Returns(Task.FromResult(exemptions));
+
+        var previousConnectionLines = await FileUtils.ReadFileContent<List<AgreementPlaceConnectionLine>>(
+            Path.Join(previousBasePath, previousFilePath));
+        var previousExemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(
+            Path.Join(previousBasePath, previousExemptionsFilePath));
 
         var utilitySyncService = new UtilityConnectionsSyncService(
             _agreementPlacesRepository,
@@ -92,7 +99,11 @@ public class UtilityUnitConnectionManualTests
         );
 
         //Act
-        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(testCustomerId, false);
+        var syncReport = await utilitySyncService.SyncUtilityUnitConnections(
+            testCustomerId,
+            checkDifference: false,
+            previousConnections: previousConnectionLines,
+            previousExemptions: previousExemptions);
 
         //Assert
         Assert.Fail("Manual test only");
