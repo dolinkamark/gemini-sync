@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Domain.Repositories;
@@ -17,6 +16,7 @@ public class SyncWorker(
     IGarbageBinService collectionService,
     ILoglineRepository loglineRepository,
     IIntegrationRepository integrationRepository,
+    IHistoryRepository historyRepository,
     GeminiSettings geminiSettings,
     IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
@@ -28,16 +28,6 @@ public class SyncWorker(
             var customerId = options.CustomerId;
             var placeTypes = options.PlaceTypes;
             var disableSync = options.DisableCache;
-            var cacheFolder = "Cache";
-
-            //Step 1) Verify if the collections are correct
-            if(options.UseFileCache)
-            {
-                if(!Directory.Exists(cacheFolder))
-                {
-                    Directory.CreateDirectory(cacheFolder);
-                }
-            }
 
             if(options.Entities.Contains(EntityTypes.GarbageBins))
             {
@@ -49,11 +39,8 @@ public class SyncWorker(
 
                     if (options.UseFileCache)
                     {
-                        logger.LogInformation("Saving garbage bins to cache");
-                        File.WriteAllText(
-                            $"Cache/garbage_bins_{placeType.Replace(" ", "_")}_{DateTime.Now.ToString("yyyyMMdd")}.json",
-                            JsonSerializer.Serialize(garbageBins)
-                        );
+                        logger.LogInformation("Saving garbage bins to history");
+                        await historyRepository.SaveHistoricalData(customerId, placeType, garbageBins);
                     }
 
                     logger.LogInformation("Total bins returned for type {PlaceType}: {Count}", placeType, garbageBins.Count);
@@ -74,11 +61,8 @@ public class SyncWorker(
 
                     if (options.UseFileCache)
                     {
-                        logger.LogInformation("Saving agreement history lines to cache");
-                        File.WriteAllText(
-                            $"Cache/agreement_place_history_lines_{placeType.Replace(" ", "_")}_{DateTime.Now.ToString("yyyyMMdd")}.json",
-                            JsonSerializer.Serialize(agreementPlaces)
-                        );
+                        logger.LogInformation("Saving agreement history lines");
+                        await historyRepository.SaveHistoricalData(customerId, placeType, agreementPlaces);
                     }
 
                     logger.LogInformation("Total agreement history lines returned for place type {PlaceType}: {Count}", placeType, agreementPlaces.Count);
@@ -89,18 +73,14 @@ public class SyncWorker(
             {
                 //Step 1.b) Verify if the utility connections are correct
                 var agreementPlaces = await agreementPlacesRepository.GetAllUtilityUnitConnections(customerId);
-                if (options.UseFileCache)
-                {
-                    logger.LogInformation("Saving agreement places");
-                    File.WriteAllText($"Cache/agreement_places_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(agreementPlaces));
-                }
-
-                //Verify download exemptions
                 var exemptions = await agreementExcemptionRepository.GetAllAgreementExcemptions(customerId);
                 if (options.UseFileCache)
                 {
+                    logger.LogInformation("Saving utility unit connections");
+                    await historyRepository.SaveHistoricalData(customerId, agreementPlaces);
+
                     logger.LogInformation("Saving agreement exemptions");
-                    File.WriteAllText($"Cache/agreement_exemptions_{DateTime.Now.ToString("yyyyMMdd")}.json", JsonSerializer.Serialize(exemptions));
+                    await historyRepository.SaveHistoricalData(customerId, exemptions);
                 }
             }
 
@@ -114,11 +94,8 @@ public class SyncWorker(
 
                     if (options.UseFileCache)
                     {
-                        logger.LogInformation("Saving logline lines to cache");
-                        File.WriteAllText(
-                            $"Cache/logline_lines_{placeType.Replace(" ", "_")}_{DateTime.Now.ToString("yyyyMMdd")}.json",
-                            JsonSerializer.Serialize(agreementPlaces)
-                        );
+                        logger.LogInformation("Saving logline lines to history");
+                        await historyRepository.SaveHistoricalData(customerId, placeType, agreementPlaces);
                     }
 
                     logger.LogInformation("Total logline lines returned for place type {PlaceType}: {Count}", placeType, agreementPlaces.Count);

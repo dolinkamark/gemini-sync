@@ -98,8 +98,6 @@ public class GarbageBinPickupManualTests
                         Description = $"Update failed for dto: {JsonSerializer.Serialize(pickup)}"
                     });
                 }
-
-                await Task.Delay(50);
             }
             catch(Exception ex)
             {

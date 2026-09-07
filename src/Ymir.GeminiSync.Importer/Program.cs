@@ -82,6 +82,9 @@ builder.Services.AddTransient<IGarbageBinSyncService, GarbageBinSyncService>();
 //Utility unit connections
 
 
+builder.Services.Configure<HistoryOptions>(
+    builder.Configuration.GetSection(HistoryOptions.SectionName));
+builder.Services.AddTransient<IHistoryRepository, FileHistoryRepository>();
 builder.Services.AddTransient<ISyncReportRepository, SyncReportFileRepository>();
 
 builder.Services.AddHostedService<SyncWorker>();
