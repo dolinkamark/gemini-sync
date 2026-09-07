@@ -8,6 +8,8 @@ public class GarbageBinCollectionLine
 
     public string AgreementType { get; set; }
 
+    public string GnrBnrFnrSnr { get; set; }
+
     public string ExternalAgreementId { get; set; }
 
     public string Bid { get; set; }

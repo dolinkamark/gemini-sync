@@ -1,4 +1,5 @@
-﻿using Ymir.GeminiSync.Domain;
+﻿using System.Text.Json;
+using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.Services.Abstract;
 
@@ -48,6 +49,10 @@ public class GarbageBinSyncService(
 
         //Step 3) Sync changed parts
         int updatedCount = 0;
+        int checkedCount = 0;
+
+        var toUpdateJson = JsonSerializer.Serialize(garbageBinStateInTimeList);
+
         foreach (var stateInTime in garbageBinStateInTimeList)
         {
             var garbageBinId = stateInTime.StateInTime.FirstOrDefault()?.GarbageBinCollectionId ?? 0;
@@ -88,6 +93,10 @@ public class GarbageBinSyncService(
                     AgreementId = garbageBinId,
                     Description = ex.ToString(),
                 });
+            }
+            finally
+            {
+                checkedCount++;
             }
         }
 

@@ -78,6 +78,19 @@ public class GarbageBinService : IGarbageBinService
         if (lines == null || lines.Count == 0)
             return new List<StateInTimeCollection>();
 
+        //Adjust historical garbage bin lines ToDate
+        var historicalLines = lines
+            .Where(l => IsHistorical(l.AgreementType))
+            .ToList();
+
+        foreach(var historicalLine in historicalLines)
+        {
+            if(historicalLine.ToDate <= new DateTime(1900, 1, 1))
+            {
+                historicalLine.ToDate = historicalLine.LastChanged;
+            }
+        }
+
         // date -> (adds, removes)
         var events = new SortedDictionary<DateTime, (List<GarbageBinCollectionLine> Adds, List<GarbageBinCollectionLine> Removes)>();
 
@@ -162,6 +175,14 @@ public class GarbageBinService : IGarbageBinService
     public bool AreGarbageBinStateInTimesEqual(List<GarbageBinsCollectionDto> firstStateInTime, List<GarbageBinsCollectionDto> secondStateInTime)
     {
         return firstStateInTime.SequenceEqual(secondStateInTime);
+    }
+
+    public static bool IsHistorical(string agreementType)
+    {
+        if (agreementType == null) return false;
+
+        var nonHistoricalTypes = new List<string> { "Eg", "12t", "BBL", "Fr", "Næ" };
+        return !nonHistoricalTypes.Any(t => t == agreementType);
     }
 
     #region Private Helpers

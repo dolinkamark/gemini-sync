@@ -36,8 +36,8 @@ public class GarbageBinsCollectionDto : IEquatable<GarbageBinsCollectionDto>
             && NumberOfConnectedUtilityUnit == other.NumberOfConnectedUtilityUnit
             && CompostType == other.CompostType
             && UtilityUnitType == other.UtilityUnitType
-            && InEffectFrom == other.InEffectFrom
-            && InEffectTo == other.InEffectTo
+            && InEffectFrom.Date == other.InEffectFrom.Date
+            && InEffectTo?.Date == other.InEffectTo?.Date
             && GarbageBins.SequenceEqual(other.GarbageBins);
     }
 

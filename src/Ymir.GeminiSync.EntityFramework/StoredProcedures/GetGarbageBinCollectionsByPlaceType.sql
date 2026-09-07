@@ -10,6 +10,7 @@ BEGIN
         al.AgreementLineId,
         al.AgreementId,
         a.Type as AgreementType,
+        a.GnrBnrFnrSnr,
         a.ExternalAgreementId,
         a.Bid,
         a.BuildingType,
