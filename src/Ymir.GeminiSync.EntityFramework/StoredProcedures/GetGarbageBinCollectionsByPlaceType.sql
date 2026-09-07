@@ -9,6 +9,7 @@ BEGIN
         al.CustomerId,
         al.AgreementLineId,
         al.AgreementId,
+        a.Type as AgreementType,
         a.ExternalAgreementId,
         a.Bid,
         a.BuildingType,

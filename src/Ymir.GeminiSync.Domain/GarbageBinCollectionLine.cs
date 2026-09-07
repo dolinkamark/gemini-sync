@@ -6,6 +6,8 @@ public class GarbageBinCollectionLine
     public long AgreementLineId { get; set; }
     public long? AgreementId { get; set; }
 
+    public string AgreementType { get; set; }
+
     public string ExternalAgreementId { get; set; }
 
     public string Bid { get; set; }
