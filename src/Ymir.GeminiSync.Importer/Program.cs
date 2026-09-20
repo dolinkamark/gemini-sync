@@ -82,6 +82,8 @@ builder.Services.AddTransient<IFractionsSyncService, FractionsSyncService>();
 
 
 //Utility unit connections
+builder.Services.AddTransient<IUtilityConnectionsService, UtilityConnectionsService>();
+builder.Services.AddTransient<IUtilityConnectionsSyncService, UtilityConnectionsSyncService>();
 
 
 builder.Services.Configure<HistoryOptions>(

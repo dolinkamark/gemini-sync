@@ -37,12 +37,6 @@ public class SyncWorker(
                 {
                     var garbageBins = await garbageBinRepository.GetGarbageBinCollections(customerId, placeType);
 
-                    if (options.UseFileCache)
-                    {
-                        logger.LogInformation("Saving garbage bins to history");
-                        await historyRepository.SaveHistoricalData(customerId, placeType, garbageBins);
-                    }
-
                     logger.LogInformation("Total bins returned for type {PlaceType}: {Count}", placeType, garbageBins.Count);
 
                     var groupedBins = collectionService.CreateStateInTimeCollections(garbageBins);
@@ -59,12 +53,6 @@ public class SyncWorker(
                 {
                     var agreementPlaces = await agreementPlacesRepository.GetFractionsHistory(customerId, placeType);
 
-                    if (options.UseFileCache)
-                    {
-                        logger.LogInformation("Saving agreement history lines");
-                        await historyRepository.SaveHistoricalData(customerId, placeType, agreementPlaces);
-                    }
-
                     logger.LogInformation("Total agreement history lines returned for place type {PlaceType}: {Count}", placeType, agreementPlaces.Count);
                 }
             }
@@ -74,14 +62,11 @@ public class SyncWorker(
                 //Step 1.b) Verify if the utility connections are correct
                 var agreementPlaces = await agreementPlacesRepository.GetAllUtilityUnitConnections(customerId);
                 var exemptions = await agreementExcemptionRepository.GetAllAgreementExcemptions(customerId);
-                if (options.UseFileCache)
-                {
-                    logger.LogInformation("Saving utility unit connections");
-                    await historyRepository.SaveHistoricalData(customerId, agreementPlaces);
 
-                    logger.LogInformation("Saving agreement exemptions");
-                    await historyRepository.SaveHistoricalData(customerId, exemptions);
-                }
+                logger.LogInformation(
+                    "Total utility unit connections: {ConnectionCount}, agreement exemptions: {ExemptionCount}",
+                    agreementPlaces.Count,
+                    exemptions.Count);
             }
 
             if (options.Entities.Contains(EntityTypes.GarbageBinPickups))

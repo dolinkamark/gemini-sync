@@ -36,12 +36,12 @@ public class FractionsInTimeManualTests
         _syncReportRepository = new SyncReportFileRepository(_syncReportOptions);
     }
 
-    [Fact(Skip = "Manual test only")]
+    [Fact]
     public async Task UpdateFractionsInTime()
     {
         //Arrange
-        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\fractions\\agreement_place_history_lines_Bruksdel_nedgravd_20260902.json";
-        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260915\\fractions\\FractionsHistory_Bruksdel_nedgravd_20260915.json";
+        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\fractions\\agreement_place_history_lines_Spann_20260902.json";
+        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260915\\fractions\\FractionsHistory_Spann_20260915.json";
         const int customerId = 1;
         const string placeType = "Bruksdel nedgravd";
 
@@ -52,15 +52,19 @@ public class FractionsInTimeManualTests
         agreementPlacesRepository.GetFractionsHistory(Arg.Any<int>(), Arg.Any<string>())
             .Returns(Task.FromResult(placeLines));
 
+        var historyRepository = Substitute.For<IHistoryRepository>();
+        historyRepository.GetPreviousFractionsHistory(Arg.Any<int>(), Arg.Any<string>())
+            .Returns(Task.FromResult(previousPlaceLines));
+
         var fractionService = new FractionService();
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
         var fractionsSyncService = new FractionsSyncService(
-            agreementPlacesRepository, fractionService, _syncReportRepository, testGeminiClient
+            agreementPlacesRepository, fractionService, historyRepository, _syncReportRepository, testGeminiClient
         );
 
         //Act
-        var syncReport = await fractionsSyncService.SyncFractionsInTime(customerId, placeType, previousPlaceLines);
+        var syncReport = await fractionsSyncService.SyncFractionsInTime(customerId, placeType);
 
         //Assert
         Assert.Fail("Manual test only");

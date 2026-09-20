@@ -18,6 +18,7 @@ public class UtilityUnitConnectionManualTests
 
     private readonly IAgreementPlacesRepository _agreementPlacesRepository = Substitute.For<IAgreementPlacesRepository>();
     private readonly IAgreementExcemptionRepository _agreementExcemptionsRepository = Substitute.For<IAgreementExcemptionRepository>();
+    private readonly IHistoryRepository _historyRepository = Substitute.For<IHistoryRepository>();
     private readonly IUtilityConnectionsService _utilityConnectionService;
     private readonly ISyncReportRepository _syncReportRepository;
 
@@ -90,10 +91,18 @@ public class UtilityUnitConnectionManualTests
         var previousExemptions = await FileUtils.ReadFileContent<List<AgreementExcemption>>(
             Path.Join(previousBasePath, previousExemptionsFilePath));
 
+        _historyRepository
+            .GetPreviousAllUtilityUnitConnections(Arg.Any<int>())
+            .Returns(Task.FromResult(previousConnectionLines));
+        _historyRepository
+            .GetPreviousAllAgreementExcemptions(Arg.Any<int>())
+            .Returns(Task.FromResult(previousExemptions));
+
         var utilitySyncService = new UtilityConnectionsSyncService(
             _agreementPlacesRepository,
             _agreementExcemptionsRepository,
             _utilityConnectionService,
+            _historyRepository,
             _syncReportRepository,
             testGeminiClient
         );
@@ -101,9 +110,7 @@ public class UtilityUnitConnectionManualTests
         //Act
         var syncReport = await utilitySyncService.SyncUtilityUnitConnections(
             testCustomerId,
-            checkDifference: false,
-            previousConnections: previousConnectionLines,
-            previousExemptions: previousExemptions);
+            checkDifference: false);
 
         //Assert
         Assert.Fail("Manual test only");
@@ -137,6 +144,7 @@ public class UtilityUnitConnectionManualTests
             _agreementPlacesRepository,
             _agreementExcemptionsRepository,
             _utilityConnectionService,
+            _historyRepository,
             _syncReportRepository,
             testGeminiClient
         );

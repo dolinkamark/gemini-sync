@@ -40,10 +40,12 @@ public class GarbageBinSyncServiceManualTests
     public async Task SyncGarbageBinCollections()
     {
         //Arrange
-        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\garbage_bins_20260813_01\\garbage_bins_Spann_20260813.json";
-        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\garbage_bins\\garbage_bins_Spann_20260902.json";
+        const string previousFilePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\garbage_bins\\garbage_bins_Bruksdel_nedgravd_20260902.json";
+        const string filePath = "E:\\Temp\\Ymir_Sync\\sync_20260915\\garbagebins\\GarbageBinCollections_Bruksdel_nedgravd_20260915.json";
         const int customerId = 1;
-        const string placeType = "Spann";
+        const string placeType = "Bruksdel nedgravd";
+
+        //E:\Temp\Ymir_Sync\sync_20260915\garbagebins\\
 
         var collectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(filePath);
         var prevCollectionLines = await FileUtils.ReadFileContent<List<GarbageBinCollectionLine>>(previousFilePath);
@@ -52,15 +54,19 @@ public class GarbageBinSyncServiceManualTests
         garbageBinRepository.GetGarbageBinCollections(Arg.Any<int>(), Arg.Any<string>())
             .Returns(Task.FromResult(collectionLines));
 
+        var historyRepository = Substitute.For<IHistoryRepository>();
+        historyRepository.GetPreviousGarbageBinCollections(Arg.Any<int>(), Arg.Any<string>())
+            .Returns(Task.FromResult(prevCollectionLines));
+
         var garbageBinService = new GarbageBinService();
         var testGeminiClient = new GeminiClient(_settings, _httpClientFactory);
 
         var testGeminiSyncService = new GarbageBinSyncService(
-            garbageBinRepository, garbageBinService, _syncReportRepository, testGeminiClient
+            garbageBinRepository, garbageBinService, historyRepository, _syncReportRepository, testGeminiClient
         );
 
         //Act
-        var syncReport = await testGeminiSyncService.SyncGarbageBinCollections(customerId, placeType, previousCollection: prevCollectionLines);
+        var syncReport = await testGeminiSyncService.SyncGarbageBinCollections(customerId, placeType, checkDifference: true);
 
         //Assert
         Assert.Fail("Manual test only");

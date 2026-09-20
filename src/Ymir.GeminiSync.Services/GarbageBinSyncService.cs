@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Ymir.GeminiSync.Domain;
+﻿using Ymir.GeminiSync.Domain;
 using Ymir.GeminiSync.Domain.Repositories;
 using Ymir.GeminiSync.Services.Abstract;
 
@@ -8,25 +7,27 @@ namespace Ymir.GeminiSync.Services;
 public class GarbageBinSyncService(
     IGarbageBinCollectionRepository garbageBinRepository,
     IGarbageBinService garbageBinService,
+    IHistoryRepository historyRepository,
     ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IGarbageBinSyncService
 {
     public async Task<SyncReport> SyncGarbageBinCollections(
         int customerId,
         string placeTypeDescription,
-        bool checkDifference = false,
-        List<GarbageBinCollectionLine> previousCollection = null)
+        bool checkDifference = false)
     {
         var syncReport = new SyncReport();
 
         //Step 1) Get things to sync
         var garbageBinCollections = await garbageBinRepository.GetGarbageBinCollections(customerId, placeTypeDescription);
+        var previousCollection = await historyRepository.GetPreviousGarbageBinCollections(customerId, placeTypeDescription);
 
         //Step 2) Build the dto list to send
         var garbageBinStateInTimeList = garbageBinService.CreateGarbageBinsStateInTimeList(garbageBinCollections, placeTypeDescription);
         var totalCount = garbageBinStateInTimeList.Count;
 
-        if (previousCollection != null)
+        //Without a previous snapshot every collection is treated as changed
+        if (previousCollection.Count > 0)
         {
             var previousStateInTimeList = garbageBinService
                 .CreateGarbageBinsStateInTimeList(previousCollection, placeTypeDescription);
@@ -50,8 +51,6 @@ public class GarbageBinSyncService(
         //Step 3) Sync changed parts
         int updatedCount = 0;
         int checkedCount = 0;
-
-        var toUpdateJson = JsonSerializer.Serialize(garbageBinStateInTimeList);
 
         foreach (var stateInTime in garbageBinStateInTimeList)
         {
@@ -103,8 +102,9 @@ public class GarbageBinSyncService(
         syncReport.TotalCount = totalCount;
         syncReport.UpdatedCount = updatedCount;
 
-        //Step 4) Save report
+        //Step 4) Save report and the snapshot the next run compares against
         await reportRepository.SaveReport(syncReport);
+        await historyRepository.SaveHistoricalData(customerId, placeTypeDescription, garbageBinCollections);
 
         return syncReport;
     }

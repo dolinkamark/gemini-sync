@@ -4,5 +4,5 @@ namespace Ymir.GeminiSync.Services.Abstract;
 
 public interface IFractionsSyncService
 {
-    Task<SyncReport> SyncFractionsInTime(int customerId, string placeTypeDescription, List<AgreementPlaceHistoryLine> previousPlaceLines = null);
+    Task<SyncReport> SyncFractionsInTime(int customerId, string placeTypeDescription);
 }

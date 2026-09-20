@@ -10,14 +10,13 @@ public class UtilityConnectionsSyncService(
     IAgreementPlacesRepository agreementPlacesRepository,
     IAgreementExcemptionRepository agreementExcemptionRepository,
     IUtilityConnectionsService utilityConnectionService,
+    IHistoryRepository historyRepository,
     ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IUtilityConnectionsSyncService
 {
     public async Task<SyncReport> SyncUtilityUnitConnections(
         int customerId,
-        bool checkDifference = false,
-        List<AgreementPlaceConnectionLine> previousConnections = null,
-        List<AgreementExcemption> previousExemptions = null)
+        bool checkDifference = false)
     {
         var syncReport = new SyncReport();
 
@@ -25,15 +24,19 @@ public class UtilityConnectionsSyncService(
         var connectionsLines = await agreementPlacesRepository.GetAllUtilityUnitConnections(customerId);
         var exemptions = await agreementExcemptionRepository.GetAllAgreementExcemptions(customerId);
 
+        var previousConnections = await historyRepository.GetPreviousAllUtilityUnitConnections(customerId);
+        var previousExemptions = await historyRepository.GetPreviousAllAgreementExcemptions(customerId);
+
         //Step 2) Build the dto list to send
         var connectionTimelines = utilityConnectionService.CreateUtilityUnitTimelines(connectionsLines, exemptions);
         var totalCount = connectionTimelines.Count;
 
-        if (previousConnections != null)
+        //Without a previous snapshot every timeline is treated as changed
+        if (previousConnections.Count > 0)
         {
             var previousTimelines = utilityConnectionService.CreateUtilityUnitTimelines(
                 previousConnections,
-                previousExemptions ?? new List<AgreementExcemption>());
+                previousExemptions);
 
             var previousByAgreementId = previousTimelines
                 .Where(t => t.updateDto.ConnectionsInTime.Count > 0)
@@ -111,8 +114,10 @@ public class UtilityConnectionsSyncService(
         syncReport.TotalCount = totalCount;
         syncReport.UpdatedCount = updateCount;
 
-        //Step 4) Save report
+        //Step 4) Save report and the snapshots the next run compares against
         await reportRepository.SaveReport(syncReport);
+        await historyRepository.SaveHistoricalData(customerId, connectionsLines);
+        await historyRepository.SaveHistoricalData(customerId, exemptions);
 
         return syncReport;
     }

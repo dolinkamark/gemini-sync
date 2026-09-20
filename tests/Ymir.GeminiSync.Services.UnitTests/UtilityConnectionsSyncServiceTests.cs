@@ -15,6 +15,7 @@ public class UtilityConnectionsSyncServiceTests
 
     private readonly IAgreementPlacesRepository _agreementPlacesRepository = Substitute.For<IAgreementPlacesRepository>();
     private readonly IAgreementExcemptionRepository _agreementExcemptionRepository = Substitute.For<IAgreementExcemptionRepository>();
+    private readonly IHistoryRepository _historyRepository = Substitute.For<IHistoryRepository>();
     private readonly ISyncReportRepository _reportRepository = Substitute.For<ISyncReportRepository>();
     private readonly IGeminiClient _geminiClient = Substitute.For<IGeminiClient>();
     private readonly UtilityConnectionsService _utilityConnectionService;
@@ -41,17 +42,22 @@ public class UtilityConnectionsSyncServiceTests
             .Returns(Task.FromResult(true));
         _agreementExcemptionRepository.GetAllAgreementExcemptions(CustomerId)
             .Returns(Task.FromResult(new List<AgreementExcemption>()));
+        _historyRepository.GetPreviousAllUtilityUnitConnections(CustomerId)
+            .Returns(Task.FromResult(new List<AgreementPlaceConnectionLine>()));
+        _historyRepository.GetPreviousAllAgreementExcemptions(CustomerId)
+            .Returns(Task.FromResult(new List<AgreementExcemption>()));
 
         _sut = new UtilityConnectionsSyncService(
             _agreementPlacesRepository,
             _agreementExcemptionRepository,
             _utilityConnectionService,
+            _historyRepository,
             _reportRepository,
             _geminiClient);
     }
 
     [Fact]
-    public async Task SyncUtilityUnitConnections_WhenPreviousSnapshotMatches_DoesNotUpdate()
+    public async Task SyncUtilityUnitConnections_WhenHistoryMatches_DoesNotUpdate()
     {
         var currentLines = new List<AgreementPlaceConnectionLine>
         {
@@ -64,11 +70,10 @@ public class UtilityConnectionsSyncServiceTests
 
         _agreementPlacesRepository.GetAllUtilityUnitConnections(CustomerId)
             .Returns(Task.FromResult(currentLines));
+        _historyRepository.GetPreviousAllUtilityUnitConnections(CustomerId)
+            .Returns(Task.FromResult(previousLines));
 
-        var report = await _sut.SyncUtilityUnitConnections(
-            CustomerId,
-            previousConnections: previousLines,
-            previousExemptions: new List<AgreementExcemption>());
+        var report = await _sut.SyncUtilityUnitConnections(CustomerId);
 
         Assert.Equal(1, report.TotalCount);
         Assert.Equal(0, report.UpdatedCount);
@@ -79,7 +84,7 @@ public class UtilityConnectionsSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncUtilityUnitConnections_WhenPreviousSnapshotDiffersOnOneAgreement_UpdatesOnlyChangedAgreement()
+    public async Task SyncUtilityUnitConnections_WhenHistoryDiffersOnOneAgreement_UpdatesOnlyChangedAgreement()
     {
         var currentLines = new List<AgreementPlaceConnectionLine>
         {
@@ -94,11 +99,10 @@ public class UtilityConnectionsSyncServiceTests
 
         _agreementPlacesRepository.GetAllUtilityUnitConnections(CustomerId)
             .Returns(Task.FromResult(currentLines));
+        _historyRepository.GetPreviousAllUtilityUnitConnections(CustomerId)
+            .Returns(Task.FromResult(previousLines));
 
-        var report = await _sut.SyncUtilityUnitConnections(
-            CustomerId,
-            previousConnections: previousLines,
-            previousExemptions: new List<AgreementExcemption>());
+        var report = await _sut.SyncUtilityUnitConnections(CustomerId);
 
         Assert.Equal(2, report.TotalCount);
         Assert.Equal(1, report.UpdatedCount);
@@ -110,7 +114,7 @@ public class UtilityConnectionsSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncUtilityUnitConnections_WhenPreviousConnectionsIsNull_UpdatesAllAgreements()
+    public async Task SyncUtilityUnitConnections_WhenHistoryIsEmpty_UpdatesAllAgreements()
     {
         var currentLines = new List<AgreementPlaceConnectionLine>
         {
@@ -121,9 +125,7 @@ public class UtilityConnectionsSyncServiceTests
         _agreementPlacesRepository.GetAllUtilityUnitConnections(CustomerId)
             .Returns(Task.FromResult(currentLines));
 
-        var report = await _sut.SyncUtilityUnitConnections(
-            CustomerId,
-            previousConnections: null);
+        var report = await _sut.SyncUtilityUnitConnections(CustomerId);
 
         Assert.Equal(2, report.TotalCount);
         Assert.Equal(2, report.UpdatedCount);
@@ -133,7 +135,27 @@ public class UtilityConnectionsSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncUtilityUnitConnections_WhenPreviousConnectionsIsNullAndCheckDifferenceMatchesGemini_DoesNotUpdate()
+    public async Task SyncUtilityUnitConnections_WhenSyncCompletes_SavesConnectionsAndExemptionsAsHistory()
+    {
+        var currentLines = new List<AgreementPlaceConnectionLine>
+        {
+            CreateLine(UnchangedAgreementId)
+        };
+        var exemptions = new List<AgreementExcemption>();
+
+        _agreementPlacesRepository.GetAllUtilityUnitConnections(CustomerId)
+            .Returns(Task.FromResult(currentLines));
+        _agreementExcemptionRepository.GetAllAgreementExcemptions(CustomerId)
+            .Returns(Task.FromResult(exemptions));
+
+        await _sut.SyncUtilityUnitConnections(CustomerId);
+
+        await _historyRepository.Received(1).SaveHistoricalData(CustomerId, currentLines);
+        await _historyRepository.Received(1).SaveHistoricalData(CustomerId, exemptions);
+    }
+
+    [Fact]
+    public async Task SyncUtilityUnitConnections_WhenHistoryIsEmptyAndCheckDifferenceMatchesGemini_DoesNotUpdate()
     {
         var currentLines = new List<AgreementPlaceConnectionLine>
         {
@@ -152,8 +174,7 @@ public class UtilityConnectionsSyncServiceTests
 
         var report = await _sut.SyncUtilityUnitConnections(
             CustomerId,
-            checkDifference: true,
-            previousConnections: null);
+            checkDifference: true);
 
         Assert.Equal(1, report.TotalCount);
         Assert.Equal(0, report.UpdatedCount);
@@ -163,7 +184,7 @@ public class UtilityConnectionsSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncUtilityUnitConnections_WhenPreviousSnapshotMatchesAndCheckDifferenceIsTrue_DoesNotCallGemini()
+    public async Task SyncUtilityUnitConnections_WhenHistoryMatchesAndCheckDifferenceIsTrue_DoesNotCallGemini()
     {
         var currentLines = new List<AgreementPlaceConnectionLine>
         {
@@ -176,12 +197,12 @@ public class UtilityConnectionsSyncServiceTests
 
         _agreementPlacesRepository.GetAllUtilityUnitConnections(CustomerId)
             .Returns(Task.FromResult(currentLines));
+        _historyRepository.GetPreviousAllUtilityUnitConnections(CustomerId)
+            .Returns(Task.FromResult(previousLines));
 
         var report = await _sut.SyncUtilityUnitConnections(
             CustomerId,
-            checkDifference: true,
-            previousConnections: previousLines,
-            previousExemptions: new List<AgreementExcemption>());
+            checkDifference: true);
 
         Assert.Equal(0, report.UpdatedCount);
         await _geminiClient.DidNotReceive().GetUtilityConnectionTimeline(Arg.Any<long>());

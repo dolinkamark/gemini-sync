@@ -14,6 +14,7 @@ public class GarbageBinSyncServiceTests
     private const int ChangedPlaceNr = 200;
 
     private readonly IGarbageBinCollectionRepository _garbageBinRepository = Substitute.For<IGarbageBinCollectionRepository>();
+    private readonly IHistoryRepository _historyRepository = Substitute.For<IHistoryRepository>();
     private readonly ISyncReportRepository _reportRepository = Substitute.For<ISyncReportRepository>();
     private readonly IGeminiClient _geminiClient = Substitute.For<IGeminiClient>();
     private readonly GarbageBinService _garbageBinService = new();
@@ -23,16 +24,19 @@ public class GarbageBinSyncServiceTests
     {
         _geminiClient.UpdateGarbageBinCollection(Arg.Any<GarbageBinsStateInTimeDto>())
             .Returns(Task.FromResult(true));
+        _historyRepository.GetPreviousGarbageBinCollections(CustomerId, PlaceType)
+            .Returns(Task.FromResult(new List<GarbageBinCollectionLine>()));
 
         _sut = new GarbageBinSyncService(
             _garbageBinRepository,
             _garbageBinService,
+            _historyRepository,
             _reportRepository,
             _geminiClient);
     }
 
     [Fact]
-    public async Task SyncGarbageBinCollections_WhenPreviousCollectionMatches_DoesNotUpdate()
+    public async Task SyncGarbageBinCollections_WhenHistoryMatches_DoesNotUpdate()
     {
         var currentLines = new List<GarbageBinCollectionLine>
         {
@@ -45,8 +49,10 @@ public class GarbageBinSyncServiceTests
 
         _garbageBinRepository.GetGarbageBinCollections(CustomerId, PlaceType)
             .Returns(Task.FromResult(currentLines));
+        _historyRepository.GetPreviousGarbageBinCollections(CustomerId, PlaceType)
+            .Returns(Task.FromResult(previousLines));
 
-        var report = await _sut.SyncGarbageBinCollections(CustomerId, PlaceType, previousCollection: previousLines);
+        var report = await _sut.SyncGarbageBinCollections(CustomerId, PlaceType);
 
         Assert.Equal(1, report.TotalCount);
         Assert.Equal(0, report.UpdatedCount);
@@ -56,7 +62,7 @@ public class GarbageBinSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncGarbageBinCollections_WhenPreviousCollectionDiffersOnOnePlace_UpdatesOnlyChangedCollection()
+    public async Task SyncGarbageBinCollections_WhenHistoryDiffersOnOnePlace_UpdatesOnlyChangedCollection()
     {
         var currentLines = new List<GarbageBinCollectionLine>
         {
@@ -71,8 +77,10 @@ public class GarbageBinSyncServiceTests
 
         _garbageBinRepository.GetGarbageBinCollections(CustomerId, PlaceType)
             .Returns(Task.FromResult(currentLines));
+        _historyRepository.GetPreviousGarbageBinCollections(CustomerId, PlaceType)
+            .Returns(Task.FromResult(previousLines));
 
-        var report = await _sut.SyncGarbageBinCollections(CustomerId, PlaceType, previousCollection: previousLines);
+        var report = await _sut.SyncGarbageBinCollections(CustomerId, PlaceType);
 
         Assert.Equal(2, report.TotalCount);
         Assert.Equal(1, report.UpdatedCount);
@@ -86,7 +94,7 @@ public class GarbageBinSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncGarbageBinCollections_WhenPreviousCollectionIsNull_UpdatesAllCollections()
+    public async Task SyncGarbageBinCollections_WhenHistoryIsEmpty_UpdatesAllCollections()
     {
         var currentLines = new List<GarbageBinCollectionLine>
         {
@@ -97,7 +105,7 @@ public class GarbageBinSyncServiceTests
         _garbageBinRepository.GetGarbageBinCollections(CustomerId, PlaceType)
             .Returns(Task.FromResult(currentLines));
 
-        var report = await _sut.SyncGarbageBinCollections(CustomerId, PlaceType, previousCollection: null);
+        var report = await _sut.SyncGarbageBinCollections(CustomerId, PlaceType);
 
         Assert.Equal(2, report.TotalCount);
         Assert.Equal(2, report.UpdatedCount);
@@ -106,7 +114,23 @@ public class GarbageBinSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncGarbageBinCollections_WhenPreviousCollectionIsNullAndCheckDifferenceMatchesGemini_DoesNotUpdate()
+    public async Task SyncGarbageBinCollections_WhenSyncCompletes_SavesCurrentLinesAsHistory()
+    {
+        var currentLines = new List<GarbageBinCollectionLine>
+        {
+            CreateLine(UnchangedPlaceNr, agreementLineId: 1)
+        };
+
+        _garbageBinRepository.GetGarbageBinCollections(CustomerId, PlaceType)
+            .Returns(Task.FromResult(currentLines));
+
+        await _sut.SyncGarbageBinCollections(CustomerId, PlaceType);
+
+        await _historyRepository.Received(1).SaveHistoricalData(CustomerId, PlaceType, currentLines);
+    }
+
+    [Fact]
+    public async Task SyncGarbageBinCollections_WhenHistoryIsEmptyAndCheckDifferenceMatchesGemini_DoesNotUpdate()
     {
         var currentLines = new List<GarbageBinCollectionLine>
         {
@@ -124,8 +148,7 @@ public class GarbageBinSyncServiceTests
         var report = await _sut.SyncGarbageBinCollections(
             CustomerId,
             PlaceType,
-            checkDifference: true,
-            previousCollection: null);
+            checkDifference: true);
 
         Assert.Equal(1, report.TotalCount);
         Assert.Equal(0, report.UpdatedCount);
@@ -134,7 +157,7 @@ public class GarbageBinSyncServiceTests
     }
 
     [Fact]
-    public async Task SyncGarbageBinCollections_WhenPreviousCollectionMatchesAndCheckDifferenceIsTrue_DoesNotCallGemini()
+    public async Task SyncGarbageBinCollections_WhenHistoryMatchesAndCheckDifferenceIsTrue_DoesNotCallGemini()
     {
         var currentLines = new List<GarbageBinCollectionLine>
         {
@@ -147,12 +170,13 @@ public class GarbageBinSyncServiceTests
 
         _garbageBinRepository.GetGarbageBinCollections(CustomerId, PlaceType)
             .Returns(Task.FromResult(currentLines));
+        _historyRepository.GetPreviousGarbageBinCollections(CustomerId, PlaceType)
+            .Returns(Task.FromResult(previousLines));
 
         var report = await _sut.SyncGarbageBinCollections(
             CustomerId,
             PlaceType,
-            checkDifference: true,
-            previousCollection: previousLines);
+            checkDifference: true);
 
         Assert.Equal(0, report.UpdatedCount);
         await _geminiClient.DidNotReceive().GetGarbageBinCollection(Arg.Any<int>());

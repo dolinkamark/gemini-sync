@@ -8,24 +8,24 @@ namespace Ymir.GeminiSync.Services;
 public class FractionsSyncService(
     IAgreementPlacesRepository agreementPlacesRepository,
     IFractionService fractionService,
+    IHistoryRepository historyRepository,
     ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IFractionsSyncService
 {
-    public async Task<SyncReport> SyncFractionsInTime(
-        int customerId,
-        string placeTypeDescription,
-        List<AgreementPlaceHistoryLine> previousPlaceLines = null)
+    public async Task<SyncReport> SyncFractionsInTime(int customerId, string placeTypeDescription)
     {
         var syncReport = new SyncReport();
 
         //Step 1) Get things to sync
         var placeLines = await agreementPlacesRepository.GetFractionsHistory(customerId, placeTypeDescription);
+        var previousPlaceLines = await historyRepository.GetPreviousFractionsHistory(customerId, placeTypeDescription);
 
         //Step 2) Build the dto list to send
         var timelines = BuildTimelines(placeLines);
         var totalCount = timelines.Count;
 
-        if (previousPlaceLines != null)
+        //Without a previous snapshot every timeline is treated as changed
+        if (previousPlaceLines.Count > 0)
         {
             timelines = fractionService.GetChangedTimelines(timelines, BuildTimelines(previousPlaceLines));
         }
@@ -71,8 +71,9 @@ public class FractionsSyncService(
         syncReport.TotalCount = totalCount;
         syncReport.UpdatedCount = updatedCount;
 
-        //Step 4) Save report
+        //Step 4) Save report and the snapshot the next run compares against
         await reportRepository.SaveReport(syncReport);
+        await historyRepository.SaveHistoricalData(customerId, placeTypeDescription, placeLines);
 
         return syncReport;
     }
