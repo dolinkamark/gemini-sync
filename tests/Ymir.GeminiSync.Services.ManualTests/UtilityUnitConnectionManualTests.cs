@@ -62,13 +62,13 @@ public class UtilityUnitConnectionManualTests
     public async Task UptadeAllUtilityConnections()
     {
         //Arrange
-        const string basePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\utility_connections_20260902";
-        const string previousBasePath = "E:\\Temp\\Ymir_Sync\\utilityunits_20260813_01";
+        const string basePath = "E:\\Temp\\Ymir_Sync\\sync_20260915\\utility_connections";
+        const string previousBasePath = "E:\\Temp\\Ymir_Sync\\sync_20260902\\utility_connections_20260902";
 
-        const string filePath = "agreement_places_20260902.json";
-        const string agreementExemptionsFilePath = "agreement_exemptions_20260902.json";
-        const string previousFilePath = "agreement_places_20260813.json";
-        const string previousExemptionsFilePath = "agreement_exemptions_20260813.json";
+        const string filePath = "UtilityUnitConnections_20260915.json";
+        const string agreementExemptionsFilePath = "AgreementExcemptions_20260915.json";
+        const string previousFilePath = "agreement_places_20260902.json";
+        const string previousExemptionsFilePath = "agreement_exemptions_20260902.json";
 
         const int testCustomerId = 1;
 

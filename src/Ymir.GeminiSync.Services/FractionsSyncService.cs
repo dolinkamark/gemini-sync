@@ -7,9 +7,14 @@ namespace Ymir.GeminiSync.Services;
 
 public class FractionsSyncService(
     IAgreementPlacesRepository agreementPlacesRepository,
+    IFractionService fractionService,
+    ISyncReportRepository reportRepository,
     IGeminiClient geminiClient) : IFractionsSyncService
 {
-    public async Task<SyncReport> SyncFractionsInTime(int customerId, string placeTypeDescription)
+    public async Task<SyncReport> SyncFractionsInTime(
+        int customerId,
+        string placeTypeDescription,
+        List<AgreementPlaceHistoryLine> previousPlaceLines = null)
     {
         var syncReport = new SyncReport();
 
@@ -17,201 +22,71 @@ public class FractionsSyncService(
         var placeLines = await agreementPlacesRepository.GetFractionsHistory(customerId, placeTypeDescription);
 
         //Step 2) Build the dto list to send
-        var intervals = BuildFractionIntervalsByDate(placeLines);
+        var timelines = BuildTimelines(placeLines);
+        var totalCount = timelines.Count;
+
+        if (previousPlaceLines != null)
+        {
+            timelines = fractionService.GetChangedTimelines(timelines, BuildTimelines(previousPlaceLines));
+        }
 
         //Step 3) Sync changed parts
         var updatedCount = 0;
 
-        //Step 4) Save report
-
-        return syncReport;
-    }
-
-    public List<AgreementFractionTimeline> CreateFractionTimelines(List<FractionInTime> intervals)
-    {
-        if (intervals == null || intervals.Count == 0)
-            return new();
-
-        return intervals
-            // Flatten: one row per (interval + agreement fraction)
-            .SelectMany(interval =>
-                interval.Agreements.Select(agreement => new
-                {
-                    agreement.AgreementId,
-                    interval.DateFrom,
-                    interval.DateTo,
-                    agreement.FractionNumerator,
-                    agreement.FractionDenominator
-                }))
-            // Group by agreement
-            .GroupBy(x => x.AgreementId)
-            .Select(group => new AgreementFractionTimeline
-            {
-                AgreementId = group.Key,
-
-                FractionsInTime = group
-                    .OrderBy(x => x.DateFrom)
-                    .Select(x => new FractionTimeEntry
-                    {
-                        DateFrom = x.DateFrom,
-                        DateTo = x.DateTo,
-                        FractionNumerator = x.FractionNumerator,
-                        FractionDenominator = x.FractionDenominator
-                    })
-                    .ToList()
-            })
-            .OrderBy(x => x.AgreementId)
-            .ToList();
-    }
-
-    /// <summary>
-    /// For each PlaceNr, builds contiguous DATE intervals (inclusive FromDate/ToDate)
-    /// and groups AgreementIds that overlap each interval.
-    ///
-    /// Assumptions:
-    /// - FromDate and ToDate represent whole dates (no time-of-day meaning).
-    /// - ToDate is inclusive. Null means "open ended".
-    ///
-    /// Intervals are split at boundaries where the active set can change:
-    /// - any FromDate
-    /// - the day AFTER any ToDate (since ToDate is inclusive)
-    /// </summary>
-    public List<PlaceAgreementInterval> BuildFractionIntervalsByDate(List<AgreementPlaceHistoryLine> lines)
-    {
-        if (lines == null) return new();
-
-        var result = new List<PlaceAgreementInterval>();
-        var placeGroups = lines
-            .GroupBy(x => x.PlaceNr)
-            .OrderBy(g => g.Key);
-
-        foreach (var placeGroup in placeGroups)
+        foreach (var (placeNr, agreementTimelines) in timelines)
         {
-            var placeNr = placeGroup.Key;
-            var placeLines = placeGroup.ToList();
-
-            // Change points are dates when an interval could start.
-            // - every FromDate
-            // - (ToDate + 1 day) because ToDate is inclusive
-            var changePoints = new SortedSet<DateTime>();
-            foreach (var l in placeLines)
+            try
             {
-                changePoints.Add(l.FromDate);
-                if (l.ToDate.HasValue)
+                //Adjust hours to avoid dayshift by timezone
+                foreach (var entry in agreementTimelines.SelectMany(t => t.FractionsInTime))
                 {
-                    changePoints.Add(l.ToDate.Value.AddDays(1));
+                    entry.DateFrom = entry.DateFrom.AddHours(12);
+                    entry.DateTo = entry.DateTo?.AddHours(12);
+                }
+
+                var isSuccessful = await geminiClient.UpdateFractionsInTime(placeNr, agreementTimelines);
+                if (!isSuccessful)
+                {
+                    syncReport.Errors.Add(new SyncError
+                    {
+                        PlaceNr = placeNr,
+                        Description = "Gemini client Fractions update call failed",
+                    });
+                }
+                else
+                {
+                    updatedCount++;
                 }
             }
-
-            var points = changePoints.ToList();
-            for (int i = 0; i < points.Count; i++)
+            catch (Exception ex)
             {
-                var intervalStart = points[i];
-
-                DateTime? intervalEnd = null;
-                if (i < points.Count - 1)
-                {
-                    var nextStart = points[i + 1];
-                    intervalEnd = nextStart.AddDays(-1);
-
-                    // Defensive: if input had weird overlaps that create nextStart == intervalStart,
-                    // then intervalEnd would be < intervalStart. Skip those empty intervals.
-                    if (intervalEnd.Value < intervalStart)
-                        continue;
-                }
-
-                // Overlap test for date ranges (inclusive):
-                // Agreement overlaps interval if:
-                //   agreement.FromDate <= intervalEnd (or open-ended)
-                //   AND agreement.ToDate (or Max) >= intervalStart
-                var endForCompare = intervalEnd ?? DateTime.MaxValue.Date;
-
-                var activeLines = placeLines
-                .Where(l =>
-                {
-                    var to = l.ToDate ?? DateTime.MaxValue.Date;
-                    return l.FromDate <= endForCompare && to >= intervalStart;
-                })
-                .ToList();
-
-                if (activeLines.Count == 0)
-                    continue;
-
-                var activeAgreementIds = activeLines
-                    .Select(l => l.AgreementId)
-                    .Distinct()
-                    .OrderBy(id => id)
-                    .ToList();
-
-                var geminiAgreementIds = activeLines
-                    .Select(l => l.ExternalAgreementId)
-                    .Distinct()
-                    .OrderBy(id => id)
-                    .ToList();
-
-                //Adjust Occupancy units
-                foreach (var activeLine in activeLines)
-                {
-                    if (activeLine.NrOfOccupancyUnits == null || activeLine.NrOfOccupancyUnits == 0)
-                    {
-                        activeLine.NrOfOccupancyUnits = 1;
-                    }
-                }
-
-                var agreementOccupancyList = activeLines
-                    .Select(l => new AgreementOccupancy
-                    {
-                        AgreementId = l.AgreementId,
-                        GeminiAgreementId = Int32.Parse(l.ExternalAgreementId),
-                        NrOfOccupancyUnits = (l.NrOfOccupancyUnits ?? 1),
-                    })
-                    .Distinct()
-                    .OrderBy(l => l.GeminiAgreementId)
-                    .ToList();
-
-                var intervalUpdatedAt = activeLines
-                    .Max(l => l.UpdatedAt > l.FromDate
-                              ? l.UpdatedAt
-                              : l.FromDate);
-
-                // Merge adjacent intervals if identical agreement set;
-                // UpdatedAt becomes the max across merged parts (safe + intuitive).
-                if (result.Count > 0)
-                {
-                    var prev = result[^1];
-                    if (prev.PlaceNr == placeNr &&
-                        SameAgreements(prev.AgreementOccupancyList.Select(i => i.GeminiAgreementId).ToList(), activeAgreementIds) &&
-                        prev.ToDate.HasValue &&
-                        prev.ToDate.Value.AddDays(1) == intervalStart)
-                    {
-                        prev.ToDate = intervalEnd;
-                        if (intervalUpdatedAt > prev.UpdatedAt)
-                            prev.UpdatedAt = intervalUpdatedAt;
-                        continue;
-                    }
-                }
-
-                result.Add(new PlaceAgreementInterval
+                syncReport.Errors.Add(new SyncError
                 {
                     PlaceNr = placeNr,
-                    FromDate = intervalStart,
-                    ToDate = intervalEnd,
-                    UpdatedAt = intervalUpdatedAt,
-                    AgreementOccupancyList = agreementOccupancyList,
+                    Description = ex.ToString(),
                 });
             }
         }
 
-        return result;
+        syncReport.TotalCount = totalCount;
+        syncReport.UpdatedCount = updatedCount;
+
+        //Step 4) Save report
+        await reportRepository.SaveReport(syncReport);
+
+        return syncReport;
     }
 
-    private bool SameAgreements(List<int> a, List<long> b)
+    /// <summary>
+    /// Lines without an ExternalAgreementId cannot be mapped to a Gemini agreement, so they are dropped.
+    /// </summary>
+    private List<(int, List<AgreementFractionTimeline>)> BuildTimelines(List<AgreementPlaceHistoryLine> lines)
     {
-        if (a.Count != b.Count) return false;
+        var mappableLines = (lines ?? new())
+            .Where(l => !String.IsNullOrWhiteSpace(l.ExternalAgreementId))
+            .ToList();
 
-        for (int i = 0; i < a.Count; i++)
-            if (a[i] != b[i]) return false;
-
-        return true;
+        return fractionService.CreateFractionTimelines(
+            fractionService.BuildFractionIntervalsByDate(mappableLines));
     }
 }

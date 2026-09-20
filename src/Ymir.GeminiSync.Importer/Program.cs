@@ -77,6 +77,8 @@ builder.Services.AddTransient<IGarbageBinService, GarbageBinService>();
 builder.Services.AddTransient<IGarbageBinSyncService, GarbageBinSyncService>();
 
 //Fractions
+builder.Services.AddTransient<IFractionService, FractionService>();
+builder.Services.AddTransient<IFractionsSyncService, FractionsSyncService>();
 
 
 //Utility unit connections
