@@ -6,8 +6,6 @@ public interface IHistoryRepository
 
     Task<List<AgreementPlaceConnectionLine>> GetPreviousAllUtilityUnitConnections(int customerId);
 
-    Task<List<AgreementPlaceConnectionLine>> GetPreviousUtilityUnitConnections(int customerId, string placeTypeDescription);
-
     Task<List<AgreementPlaceHistoryLine>> GetPreviousFractionsHistory(int customerId, string placeTypeDescription);
 
     Task<List<LoglineLine>> GetPreviousLoglineLines(int customerId, string placeTypeDescription);
@@ -19,8 +17,6 @@ public interface IHistoryRepository
     Task SaveHistoricalData(int customerId, string placeTypeDescription, List<AgreementPlaceHistoryLine> fractionsHistory);
 
     Task SaveHistoricalData(int customerId, List<AgreementPlaceConnectionLine> utilityUnitConnections);
-
-    Task SaveHistoricalData(int customerId, string placeTypeDescription, List<AgreementPlaceConnectionLine> utilityUnitConnections);
 
     Task SaveHistoricalData(int customerId, List<AgreementExcemption> agreementExcemptions);
 

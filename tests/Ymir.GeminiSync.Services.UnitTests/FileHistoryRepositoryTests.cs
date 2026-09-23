@@ -44,7 +44,7 @@ public class FileHistoryRepositoryTests : IDisposable
         var previousLine = Assert.Single(previous);
         Assert.Equal(100, previousLine.PlaceNr);
         Assert.Equal("BIN-1", previousLine.Bid);
-        Assert.True(File.Exists(Path.Combine(_directory, $"GarbageBinCollections_{PlaceType}_{DateTime.Now:yyyyMMdd}.json")));
+        Assert.True(File.Exists(Path.Combine(_directory, "GarbageBins", $"{PlaceType}_{DateTime.Now:yyyyMMdd}_01.json")));
     }
 
     [Fact]
@@ -52,7 +52,6 @@ public class FileHistoryRepositoryTests : IDisposable
     {
         Assert.Empty(await _sut.GetPreviousGarbageBinCollections(CustomerId, PlaceType));
         Assert.Empty(await _sut.GetPreviousAllUtilityUnitConnections(CustomerId));
-        Assert.Empty(await _sut.GetPreviousUtilityUnitConnections(CustomerId, PlaceType));
         Assert.Empty(await _sut.GetPreviousFractionsHistory(CustomerId, PlaceType));
         Assert.Empty(await _sut.GetPreviousLoglineLines(CustomerId, PlaceType));
         Assert.Empty(await _sut.GetPreviousAllAgreementExcemptions(CustomerId));
@@ -69,16 +68,19 @@ public class FileHistoryRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPrevious_SelectsMatchingPlaceTypeAndTypeToken()
+    public async Task GetPrevious_SelectsMatchingPlaceTypeAndSyncTypeFolder()
     {
         await WriteJson(
-            $"GarbageBinCollections_{PlaceType}_20260101.json",
+            "GarbageBins",
+            $"{PlaceType}_20260101_01.json",
             new List<GarbageBinCollectionLine> { new() { PlaceNr = 1, Bid = "spann" } });
         await WriteJson(
-            $"GarbageBinCollections_Nedgravd_privat_20260101.json",
+            "GarbageBins",
+            "Nedgravd_privat_20260101_01.json",
             new List<GarbageBinCollectionLine> { new() { PlaceNr = 2, Bid = "nedgravd" } });
         await WriteJson(
-            $"FractionsHistory_{PlaceType}_20260101.json",
+            "Fractions",
+            $"{PlaceType}_20260101_01.json",
             new List<AgreementPlaceHistoryLine> { new() { PlaceNr = 3, ExternalAgreementId = "frac" } });
 
         var spannBins = await _sut.GetPreviousGarbageBinCollections(CustomerId, PlaceType);
@@ -91,16 +93,23 @@ public class FileHistoryRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPrevious_PicksLatestDatedFile()
+    public async Task GetPrevious_PicksLatestDateThenHighestIncrement()
     {
         await WriteJson(
-            $"GarbageBinCollections_{PlaceType}_20260101.json",
+            "GarbageBins",
+            $"{PlaceType}_20260101_05.json",
             new List<GarbageBinCollectionLine> { new() { Bid = "older" } });
         await WriteJson(
-            $"GarbageBinCollections_{PlaceType}_20260315.json",
+            "GarbageBins",
+            $"{PlaceType}_20260315_02.json",
             new List<GarbageBinCollectionLine> { new() { Bid = "latest" } });
         await WriteJson(
-            $"GarbageBinCollections_{PlaceType}_20260201.json",
+            "GarbageBins",
+            $"{PlaceType}_20260315_01.json",
+            new List<GarbageBinCollectionLine> { new() { Bid = "earlier-same-day" } });
+        await WriteJson(
+            "GarbageBins",
+            $"{PlaceType}_20260201_01.json",
             new List<GarbageBinCollectionLine> { new() { Bid = "middle" } });
 
         var previous = await _sut.GetPreviousGarbageBinCollections(CustomerId, PlaceType);
@@ -109,33 +118,28 @@ public class FileHistoryRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPreviousAllUtilityUnitConnections_DoesNotMatchPlaceScopedFiles()
+    public async Task SaveHistoricalData_SameDayWritesIncrementedFiles()
     {
-        await WriteJson(
-            "UtilityUnitConnections_Spann_20260315.json",
-            new List<AgreementPlaceConnectionLine> { new() { Bid = "place-scoped" } });
-        await WriteJson(
-            "UtilityUnitConnections_20260101.json",
-            new List<AgreementPlaceConnectionLine> { new() { Bid = "all" } });
+        await _sut.SaveHistoricalData(CustomerId, PlaceType, new List<GarbageBinCollectionLine> { new() { Bid = "first" } });
+        await _sut.SaveHistoricalData(CustomerId, PlaceType, new List<GarbageBinCollectionLine> { new() { Bid = "second" } });
 
-        var all = await _sut.GetPreviousAllUtilityUnitConnections(CustomerId);
-        var placeScoped = await _sut.GetPreviousUtilityUnitConnections(CustomerId, PlaceType);
-
-        Assert.Equal("all", Assert.Single(all).Bid);
-        Assert.Equal("place-scoped", Assert.Single(placeScoped).Bid);
+        var date = DateTime.Now.ToString("yyyyMMdd");
+        Assert.True(File.Exists(Path.Combine(_directory, "GarbageBins", $"{PlaceType}_{date}_01.json")));
+        Assert.True(File.Exists(Path.Combine(_directory, "GarbageBins", $"{PlaceType}_{date}_02.json")));
+        Assert.Equal("second", Assert.Single(await _sut.GetPreviousGarbageBinCollections(CustomerId, PlaceType)).Bid);
     }
 
     [Fact]
-    public async Task SaveHistoricalData_WritesSeparateFilesPerCollectionType()
+    public async Task SaveHistoricalData_WritesConnectionsAndExemptionsToUtilityConnectionsFolder()
     {
         await _sut.SaveHistoricalData(CustomerId, [new AgreementPlaceConnectionLine { Bid = "conn" }]);
         await _sut.SaveHistoricalData(CustomerId, [new AgreementExcemption { AgreementId = 42 }]);
         await _sut.SaveHistoricalData(CustomerId, PlaceType, new List<GarbageBinCollectionLine> { new() { Bid = "bin" } });
 
         var date = DateTime.Now.ToString("yyyyMMdd");
-        Assert.True(File.Exists(Path.Combine(_directory, $"UtilityUnitConnections_{date}.json")));
-        Assert.True(File.Exists(Path.Combine(_directory, $"AgreementExcemptions_{date}.json")));
-        Assert.True(File.Exists(Path.Combine(_directory, $"GarbageBinCollections_{PlaceType}_{date}.json")));
+        Assert.True(File.Exists(Path.Combine(_directory, "UtilityConnections", $"UtilityConnections_{date}_01.json")));
+        Assert.True(File.Exists(Path.Combine(_directory, "UtilityConnections", $"Exemptions_{date}_01.json")));
+        Assert.True(File.Exists(Path.Combine(_directory, "GarbageBins", $"{PlaceType}_{date}_01.json")));
         Assert.Equal("conn", Assert.Single(await _sut.GetPreviousAllUtilityUnitConnections(CustomerId)).Bid);
         Assert.Equal(42, Assert.Single(await _sut.GetPreviousAllAgreementExcemptions(CustomerId)).AgreementId);
         Assert.Equal("bin", Assert.Single(await _sut.GetPreviousGarbageBinCollections(CustomerId, PlaceType)).Bid);
@@ -168,11 +172,12 @@ public class FileHistoryRepositoryTests : IDisposable
         var previous = await _sut.GetPreviousLoglineLines(CustomerId, OtherPlaceType);
 
         Assert.Equal(9, Assert.Single(previous).LogLineId);
-        Assert.True(File.Exists(Path.Combine(_directory, $"LoglineLines_Nedgravd_privat_{DateTime.Now:yyyyMMdd}.json")));
+        Assert.True(File.Exists(Path.Combine(_directory, "Emptyings", $"Nedgravd_privat_{DateTime.Now:yyyyMMdd}_01.json")));
     }
 
-    private async Task WriteJson<T>(string fileName, T value)
+    private async Task WriteJson<T>(string folder, string fileName, T value)
     {
-        await File.WriteAllTextAsync(Path.Combine(_directory, fileName), JsonSerializer.Serialize(value));
+        Directory.CreateDirectory(Path.Combine(_directory, folder));
+        await File.WriteAllTextAsync(Path.Combine(_directory, folder, fileName), JsonSerializer.Serialize(value));
     }
 }

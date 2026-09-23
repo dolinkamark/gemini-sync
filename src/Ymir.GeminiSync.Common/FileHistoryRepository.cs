@@ -9,11 +9,15 @@ namespace Ymir.GeminiSync.Common;
 
 public class FileHistoryRepository : IHistoryRepository
 {
-    private const string GarbageBinCollectionsType = "GarbageBinCollections";
-    private const string UtilityUnitConnectionsType = "UtilityUnitConnections";
-    private const string FractionsHistoryType = "FractionsHistory";
-    private const string LoglineLinesType = "LoglineLines";
-    private const string AgreementExcemptionsType = "AgreementExcemptions";
+    private const string GarbageBinsFolder = "GarbageBins";
+    private const string FractionsFolder = "Fractions";
+    private const string EmptyingsFolder = "Emptyings";
+    private const string UtilityConnectionsFolder = "UtilityConnections";
+
+    private const string UtilityConnectionsPrefix = "UtilityConnections";
+    private const string ExemptionsPrefix = "Exemptions";
+
+    private const string DateFormat = "yyyyMMdd";
 
     private static readonly JsonSerializerOptions ReadOptions = new()
     {
@@ -22,59 +26,54 @@ public class FileHistoryRepository : IHistoryRepository
         AllowTrailingCommas = true
     };
 
-    private readonly string _directory;
+    private readonly string _rootDirectory;
 
     public FileHistoryRepository(IOptions<HistoryOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        _directory = Path.GetFullPath(options.Value.Directory);
+        _rootDirectory = Path.GetFullPath(options.Value.Directory);
     }
 
     public Task<List<GarbageBinCollectionLine>> GetPreviousGarbageBinCollections(int customerId, string placeTypeDescription)
-        => ReadLatest<GarbageBinCollectionLine>(GarbageBinCollectionsType, placeTypeDescription);
+        => ReadLatest<GarbageBinCollectionLine>(GarbageBinsFolder, NormalizePlaceType(placeTypeDescription));
 
     public Task<List<AgreementPlaceConnectionLine>> GetPreviousAllUtilityUnitConnections(int customerId)
-        => ReadLatest<AgreementPlaceConnectionLine>(UtilityUnitConnectionsType, placeTypeDescription: null);
-
-    public Task<List<AgreementPlaceConnectionLine>> GetPreviousUtilityUnitConnections(int customerId, string placeTypeDescription)
-        => ReadLatest<AgreementPlaceConnectionLine>(UtilityUnitConnectionsType, placeTypeDescription);
+        => ReadLatest<AgreementPlaceConnectionLine>(UtilityConnectionsFolder, UtilityConnectionsPrefix);
 
     public Task<List<AgreementPlaceHistoryLine>> GetPreviousFractionsHistory(int customerId, string placeTypeDescription)
-        => ReadLatest<AgreementPlaceHistoryLine>(FractionsHistoryType, placeTypeDescription);
+        => ReadLatest<AgreementPlaceHistoryLine>(FractionsFolder, NormalizePlaceType(placeTypeDescription));
 
     public Task<List<LoglineLine>> GetPreviousLoglineLines(int customerId, string placeTypeDescription)
-        => ReadLatest<LoglineLine>(LoglineLinesType, placeTypeDescription);
+        => ReadLatest<LoglineLine>(EmptyingsFolder, NormalizePlaceType(placeTypeDescription));
 
     public Task<List<AgreementExcemption>> GetPreviousAllAgreementExcemptions(int customerId)
-        => ReadLatest<AgreementExcemption>(AgreementExcemptionsType, placeTypeDescription: null);
+        => ReadLatest<AgreementExcemption>(UtilityConnectionsFolder, ExemptionsPrefix);
 
     public Task SaveHistoricalData(int customerId, string placeTypeDescription, List<GarbageBinCollectionLine> garbageBinCollections)
-        => Write(GarbageBinCollectionsType, placeTypeDescription, garbageBinCollections);
+        => Write(GarbageBinsFolder, NormalizePlaceType(placeTypeDescription), garbageBinCollections);
 
     public Task SaveHistoricalData(int customerId, string placeTypeDescription, List<AgreementPlaceHistoryLine> fractionsHistory)
-        => Write(FractionsHistoryType, placeTypeDescription, fractionsHistory);
+        => Write(FractionsFolder, NormalizePlaceType(placeTypeDescription), fractionsHistory);
 
     public Task SaveHistoricalData(int customerId, List<AgreementPlaceConnectionLine> utilityUnitConnections)
-        => Write(UtilityUnitConnectionsType, placeTypeDescription: null, utilityUnitConnections);
-
-    public Task SaveHistoricalData(int customerId, string placeTypeDescription, List<AgreementPlaceConnectionLine> utilityUnitConnections)
-        => Write(UtilityUnitConnectionsType, placeTypeDescription, utilityUnitConnections);
+        => Write(UtilityConnectionsFolder, UtilityConnectionsPrefix, utilityUnitConnections);
 
     public Task SaveHistoricalData(int customerId, List<AgreementExcemption> agreementExcemptions)
-        => Write(AgreementExcemptionsType, placeTypeDescription: null, agreementExcemptions);
+        => Write(UtilityConnectionsFolder, ExemptionsPrefix, agreementExcemptions);
 
     public Task SaveHistoricalData(int customerId, string placeTypeDescription, List<LoglineLine> loglineLines)
-        => Write(LoglineLinesType, placeTypeDescription, loglineLines);
+        => Write(EmptyingsFolder, NormalizePlaceType(placeTypeDescription), loglineLines);
 
-    private async Task<List<T>> ReadLatest<T>(string type, string? placeTypeDescription)
+    private async Task<List<T>> ReadLatest<T>(string folder, string prefix)
     {
-        if (!Directory.Exists(_directory))
+        var directory = Path.Join(_rootDirectory, folder);
+        if (!Directory.Exists(directory))
         {
             return [];
         }
 
-        var latestPath = FindLatestFile(type, placeTypeDescription);
+        var latestPath = FindLatestFile(directory, prefix);
         if (latestPath is null)
         {
             return [];
@@ -85,73 +84,71 @@ public class FileHistoryRepository : IHistoryRepository
         return result ?? [];
     }
 
-    private string? FindLatestFile(string type, string? placeTypeDescription)
+    private static string? FindLatestFile(string directory, string prefix)
     {
-        var fileNameRegex = BuildFileNameRegex(type, placeTypeDescription);
+        var fileNameRegex = BuildFileNameRegex(prefix, dateToken: null);
 
-        return Directory.GetFiles(_directory, "*.json")
+        return Directory.GetFiles(directory, "*.json")
             .Select(path =>
             {
                 var match = fileNameRegex.Match(Path.GetFileName(path));
                 if (!match.Success
                     || !DateTime.TryParseExact(
                         match.Groups[1].Value,
-                        "yyyyMMdd",
+                        DateFormat,
                         CultureInfo.InvariantCulture,
                         DateTimeStyles.None,
                         out var date))
                 {
-                    return (Path: (string?)null, Date: DateTime.MinValue);
+                    return (Path: (string?)null, Date: DateTime.MinValue, Increment: 0);
                 }
 
-                return (Path: path, Date: date);
+                return (Path: path, Date: date, Increment: int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture));
             })
             .Where(file => file.Path is not null)
             .OrderByDescending(file => file.Date)
+            .ThenByDescending(file => file.Increment)
             .Select(file => file.Path)
             .FirstOrDefault();
     }
 
-    private async Task Write<T>(string type, string? placeTypeDescription, IReadOnlyCollection<T> items)
+    private async Task Write<T>(string folder, string prefix, IReadOnlyCollection<T> items)
     {
         ArgumentNullException.ThrowIfNull(items);
 
-        Directory.CreateDirectory(_directory);
+        var directory = Path.Join(_rootDirectory, folder);
+        Directory.CreateDirectory(directory);
 
-        var fileName = BuildFileName(type, placeTypeDescription, DateTime.Now);
-        var filePath = Path.Join(_directory, fileName);
+        var dateToken = DateTime.Now.ToString(DateFormat, CultureInfo.InvariantCulture);
+        var increment = NextIncrement(directory, prefix, dateToken);
+        var filePath = Path.Join(directory, $"{prefix}_{dateToken}_{increment:D2}.json");
         var json = JsonSerializer.Serialize(items);
         await File.WriteAllTextAsync(filePath, json);
     }
 
-    private static string BuildFileName(string type, string? placeTypeDescription, DateTime date)
+    private static int NextIncrement(string directory, string prefix, string dateToken)
     {
-        var dateToken = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        var placeToken = NormalizePlaceType(placeTypeDescription);
-        if (string.IsNullOrEmpty(placeToken))
-        {
-            return $"{type}_{dateToken}.json";
-        }
+        var fileNameRegex = BuildFileNameRegex(prefix, dateToken);
 
-        return $"{type}_{placeToken}_{dateToken}.json";
+        return Directory.GetFiles(directory, "*.json")
+            .Select(path => fileNameRegex.Match(Path.GetFileName(path)))
+            .Where(match => match.Success)
+            .Select(match => int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture))
+            .DefaultIfEmpty(0)
+            .Max() + 1;
     }
 
-    private static Regex BuildFileNameRegex(string type, string? placeTypeDescription)
+    private static Regex BuildFileNameRegex(string prefix, string? dateToken)
     {
-        var placeToken = NormalizePlaceType(placeTypeDescription);
-        var pattern = string.IsNullOrEmpty(placeToken)
-            ? $"^{Regex.Escape(type)}_(\\d{{8}})\\.json$"
-            : $"^{Regex.Escape(type)}_{Regex.Escape(placeToken)}_(\\d{{8}})\\.json$";
+        var datePattern = dateToken is null ? "\\d{8}" : Regex.Escape(dateToken);
+        var pattern = $"^{Regex.Escape(prefix)}_({datePattern})_(\\d{{2,}})\\.json$";
 
         return new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
-    private static string NormalizePlaceType(string? placeTypeDescription)
+    private static string NormalizePlaceType(string placeTypeDescription)
     {
-        if (string.IsNullOrWhiteSpace(placeTypeDescription))
-        {
-            return string.Empty;
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(placeTypeDescription);
 
         return placeTypeDescription.Trim().Replace(" ", "_");
     }
