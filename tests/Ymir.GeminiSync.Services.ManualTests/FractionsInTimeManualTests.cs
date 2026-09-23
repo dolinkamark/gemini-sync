@@ -36,7 +36,7 @@ public class FractionsInTimeManualTests
         _syncReportRepository = new SyncReportFileRepository(_syncReportOptions);
     }
 
-    [Fact]
+    [Fact(Skip = "Manual test only")]
     public async Task UpdateFractionsInTime()
     {
         //Arrange
